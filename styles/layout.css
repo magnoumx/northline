@@ -1,0 +1,32 @@
+.shell {
+  width: min(
+    calc(100% - (var(--space-page-inline) * 2)),
+    var(--content-shell)
+  );
+  margin-inline: auto;
+}
+
+.section-space {
+  padding-block: var(--space-section);
+}
+
+.story-width {
+  width: min(
+    calc(100% - (var(--space-page-inline) * 2)),
+    var(--content-story)
+  );
+  margin-inline: auto;
+}
+
+.article-width,
+.policy-width {
+  width: min(
+    calc(100% - (var(--space-page-inline) * 2)),
+    var(--content-article)
+  );
+  margin-inline: auto;
+}
+
+#main-content {
+  min-height: 55vh;
+}

@@ -1,0 +1,31 @@
+@import "../styles/newsroom-tokens.css";
+@import "../styles/newsroom-shell.css";
+@import "../styles/newsroom-editorial.css";
+@import "../styles/newsroom-controls.css";
+@import "../styles/newsroom-advertising.css";
+@import "../styles/newsroom-intelligence.css";
+@import "../styles/newsroom-live-core.css";
+
+/* The gate's refusal reasons, shown beside the control that overrides them.
+   An Approve button with nothing next to it reads as "nothing is wrong". */
+.article-row-approve {
+  display: grid;
+  gap: 0.4rem;
+  justify-items: start;
+}
+
+.article-row-held {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 0.35rem;
+  max-width: 32ch;
+  color: var(--nr-warning, #d98b28);
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.article-row-held svg {
+  width: 0.85rem;
+  flex: 0 0 auto;
+  margin-top: 0.1rem;
+}

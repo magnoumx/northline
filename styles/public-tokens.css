@@ -1,0 +1,117 @@
+/**
+ * Public site design tokens — Provenance.
+ *
+ * Deliberately its own namespace (`--pub-*`), never `--color-*` or `--n-*`.
+ * Those feed the newsroom staff console directly: `.newsroom-app` derives
+ * `--nr-page`, `--nr-text`, `--nr-primary` and the rest straight from
+ * `--color-page`, `--color-text`, `--color-primary`. Redefining those globally
+ * would silently reskin the internal tool nobody asked to change. New names
+ * make that impossible by construction, and give the public site the fully
+ * independent system it needs going forward - components that want the new
+ * look opt in explicitly, nothing inherits it by accident.
+ *
+ * The direction is Provenance: a blue-slate archive ground under warm paper
+ * text, with one desaturated teal carrying the site's single idea - every claim
+ * is traced to a source. Teal is the interactive and brand colour; the brighter
+ * mint of `--pub-verified` is kept for the one state that earns it. The reader
+ * sees dark by default (set on <html> before paint); light is the archival
+ * daytime variant, cool bone rather than the cream this site used to run.
+ */
+
+/* ------------------------------------------------------------------ *
+ * Light — the daytime archive. Cool bone and slate ink, not cream.
+ * Bare :root so a viewer with no explicit choice and a light OS lands
+ * here. Dark (the default most readers see) is redefined below.
+ * ------------------------------------------------------------------ */
+:root {
+  --pub-bg: #e9ecee;
+  --pub-bg-raised: #ffffff;
+  --pub-text: #161f28;
+  --pub-text-soft: #55606b;
+  --pub-line: #d2d8dd;
+  --pub-line-strong: #b4bcc4;
+
+  /* The traced teal - interactive and brand. Deepened for contrast on a
+     light ground; the dark theme lifts it back to the archival mid-teal. */
+  --pub-accent: #256a61;
+  --pub-accent-hover: #1b544d;
+  --pub-on-accent: #ffffff;
+
+  /* Verified: one state, one colour, kept distinct from the brand teal by
+     value so "cleared" never blurs into "interactive". */
+  --pub-verified: #1f7d5c;
+
+  --pub-focus: #1f5fa8;
+  --pub-success: #1f7d5c;
+
+  /* Type: a transitional serif for what a reader reads, a humanist sans for
+     the interface around it, a mono for evidence data - source counts, tiers,
+     timestamps. The three roles must never be interchangeable; that contrast
+     is the whole hierarchy. */
+  --pub-font-serif: var(--font-newsreader), Georgia, "Times New Roman", serif;
+  --pub-font-sans: var(--font-geist-sans), "Helvetica Neue", Arial, sans-serif;
+  --pub-font-mono: var(--font-geist-mono), "Geist Mono", ui-monospace, monospace;
+
+  /* Archival precision favours tight corners over soft cards. */
+  --pub-radius-sm: 3px;
+  --pub-radius-md: 5px;
+
+  /* Deliberately thin. The system leans on typography, whitespace, and hairline
+     rules for separation - not elevation. A component that wants distance
+     between it and the page uses --pub-line, not a shadow. */
+  --pub-shadow: 0 1px 2px rgb(16 25 32 / 0.06);
+
+  --pub-max-width: 1360px;
+  --pub-grid-gap: 24px;
+  --pub-article-width: 720px;
+
+  /* Fixed, not theme-conditional: the footer stays dark in both reader
+     themes, the way a masthead's closing band conventionally does. Matched to
+     the dark ground family so it reads as the same publication. */
+  --pub-inverse-bg: #10161c;
+  --pub-inverse-text: #e9e5dc;
+  --pub-inverse-text-soft: #8b939b;
+  --pub-inverse-line: #232c34;
+}
+
+/* ------------------------------------------------------------------ *
+ * Dark — the default. Blue-slate ground, warm paper text, mid-teal.
+ * Both the explicit toggle and a dark OS resolve to the same values.
+ * ------------------------------------------------------------------ */
+:root[data-theme="dark"] {
+  --pub-bg: #141a20;
+  --pub-bg-raised: #1b232b;
+  --pub-text: #e9e5dc;
+  --pub-text-soft: #939ba3;
+  --pub-line: #262f38;
+  --pub-line-strong: #384450;
+
+  --pub-accent: #5ea8a0;
+  --pub-accent-hover: #79c2ba;
+  --pub-on-accent: #0c1116;
+
+  --pub-verified: #74cba9;
+
+  --pub-focus: #6fb2c9;
+  --pub-success: #74cba9;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --pub-bg: #141a20;
+    --pub-bg-raised: #1b232b;
+    --pub-text: #e9e5dc;
+    --pub-text-soft: #939ba3;
+    --pub-line: #262f38;
+    --pub-line-strong: #384450;
+
+    --pub-accent: #5ea8a0;
+    --pub-accent-hover: #79c2ba;
+    --pub-on-accent: #0c1116;
+
+    --pub-verified: #74cba9;
+
+    --pub-focus: #6fb2c9;
+    --pub-success: #74cba9;
+  }
+}

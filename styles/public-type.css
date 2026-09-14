@@ -1,0 +1,76 @@
+/*
+ * Public typographic scale — Provenance.
+ *
+ * The public headlines are already the transitional serif; every one of them
+ * also inherited a single blunt weight (760) from the global heading base,
+ * which is shared with the newsroom console and cannot be lightened there
+ * without reskinning the internal tool. So hierarchy came only from size, and
+ * a lead headline carried the same weight as a six-word list item.
+ *
+ * This layer, scoped to any page that is not the console, gives the serif a
+ * real weight scale: large display sits lighter, the way a transitional face
+ * is meant to at size, and small list headlines take a touch more weight so
+ * they hold. It is imported after the base and before the component styles, so
+ * a component that deliberately sets its own weight still wins.
+ */
+
+/* Default: the transitional serif at a lifted weight, on every public
+   headline. The homepage already ran serif; the feed and topic pages did not,
+   so a story's headline changed face depending on which page you found it on.
+   One display face is the point of a masthead. */
+body:not(:has(.newsroom-app)) :where(h1, h2, h3) {
+  font-family: var(--pub-font-serif);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+/* Exceptions: these are interface labels, not editorial display, and stay in
+   the sans so the reader can tell a signpost from a headline. */
+body:not(:has(.newsroom-app)) :where(
+  .section-heading h2,
+  .site-footer nav h2,
+  .search-dialog__header h2
+) {
+  font-family: var(--pub-font-sans);
+  letter-spacing: 0.02em;
+}
+
+/* Display tier — the largest headlines read best lighter and tighter. */
+body:not(:has(.newsroom-app)) :where(
+  .front__lead h3,
+  .lead-story h1,
+  .lead-story h2,
+  .page-intro h1,
+  .live-blog__header h1
+) {
+  font-weight: 460;
+  letter-spacing: -0.025em;
+}
+
+/* List tier — small headlines need the weight back to stay legible. */
+body:not(:has(.newsroom-app)) :where(
+  .river__list h3,
+  .compact-story h3,
+  .story-card--horizontal h3,
+  .home-section__card h3
+) {
+  font-weight: 545;
+  letter-spacing: -0.012em;
+}
+
+/*
+ * Labels and evidence data. The category eyebrow drops from 760 to a quiet
+ * 600; the story meta line - read time, status - moves to the mono face and
+ * tabular figures, so the metadata reads like a catalogue record rather than
+ * more body copy. This is the groundwork the citation spine will build on.
+ */
+body:not(:has(.newsroom-app)) :where(.story-eyebrow) {
+  font-weight: 600;
+  letter-spacing: 0.07em;
+}
+
+body:not(:has(.newsroom-app)) .story-meta {
+  font-family: var(--pub-font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.005em;
+}

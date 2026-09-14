@@ -1,0 +1,886 @@
+/*
+ * The base `body` rule in reset.css is shared with the newsroom staff
+ * console (`.newsroom-app` derives its own tokens straight from the ones
+ * that rule reads), so it cannot be repointed at the new palette without
+ * silently reskinning an internal tool nobody asked to change. This targets
+ * only the public site - any page that never renders `.newsroom-app`.
+ */
+body:not(:has(.newsroom-app)) {
+  background: var(--pub-bg);
+  color: var(--pub-text);
+  font-family: var(--pub-font-sans);
+}
+
+.site-header {
+  position: sticky;
+  z-index: var(--z-header);
+  top: 0;
+  background: var(--pub-bg);
+}
+
+/* Its own full-width row: the wordmark used to lose to the compact monogram
+   beside a dense action row. Nothing shares this row with it. */
+.site-header__brand-row {
+  display: flex;
+  justify-content: center;
+  padding-block: var(--n-space-3);
+}
+
+.site-header__nav-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--n-space-4);
+  min-height: 3.25rem;
+  border-block: 1px solid var(--pub-line);
+}
+
+.brand-mark {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--n-space-2);
+  color: var(--pub-text);
+  text-decoration: none;
+}
+
+.brand-mark__signal {
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  color: var(--text-on-accent);
+  line-height: 0;
+}
+
+.brand-mark__signal img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.northline-monogram {
+  display: block;
+  width: 2rem;
+  height: 2rem;
+  transition: transform var(--n-duration-normal)
+    cubic-bezier(0.22, 1, 0.36, 1);
+  transform-origin: 50% 50%;
+}
+
+.brand-mark:hover .northline-monogram,
+.brand-mark:focus-visible .northline-monogram {
+  transform: translateY(-1px) rotate(-2deg);
+}
+
+.brand-mark--inverted .northline-monogram {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+@keyframes northline-monogram-reveal {
+  from {
+    opacity: 0;
+    transform: scale(0.86);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.brand-mark__signal .northline-monogram {
+  animation: northline-monogram-reveal var(--n-duration-normal) ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-mark:hover .northline-monogram,
+  .brand-mark:focus-visible .northline-monogram {
+    transform: none;
+  }
+  .brand-mark__signal .northline-monogram {
+    animation: none;
+  }
+}
+
+.brand-mark__word {
+  overflow: hidden;
+  font-family: var(--pub-font-sans);
+  font-size: clamp(1.4rem, 5vw, 2rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--pub-text);
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.site-header__brand-row .brand-mark {
+  gap: var(--n-space-3);
+}
+
+.brand-mark__wordmark-image {
+  width: auto;
+  max-width: 9rem;
+}
+
+/* Hidden below the desktop breakpoint - the account menu carries these links
+   on narrow viewports instead, so the section list is never actually lost. */
+.primary-navigation {
+  display: none;
+  align-items: center;
+  gap: clamp(1rem, 2.4vw, 2rem);
+}
+
+.primary-navigation a {
+  font-family: var(--pub-font-sans);
+  font-size: var(--n-text-sm);
+  font-weight: 700;
+  color: var(--pub-text);
+  text-decoration: none;
+}
+
+.primary-navigation a:hover,
+.primary-navigation a:focus-visible {
+  color: var(--pub-accent);
+}
+
+.site-header__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--n-space-1);
+}
+
+.site-header .icon-button {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--pub-radius-sm);
+  background: transparent;
+  color: var(--pub-text);
+  cursor: pointer;
+}
+
+.site-header .icon-button:hover,
+.site-header .icon-button:focus-visible {
+  background: var(--pub-bg-raised);
+}
+
+.site-header .icon-button svg {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.account-menu {
+  position: relative;
+}
+
+.account-menu__panel {
+  position: absolute;
+  top: calc(100% + var(--n-space-2));
+  right: 0;
+  z-index: var(--z-header);
+  display: flex;
+  min-width: 14rem;
+  flex-direction: column;
+  gap: var(--n-space-1);
+  border: 1px solid var(--pub-line);
+  border-radius: var(--pub-radius-md);
+  background: var(--pub-bg-raised);
+  padding: var(--n-space-3);
+  box-shadow: var(--pub-shadow);
+}
+
+.account-menu__sections {
+  display: none;
+  flex-direction: column;
+  gap: var(--n-space-1);
+  padding-bottom: var(--n-space-2);
+  border-bottom: 1px solid var(--pub-line);
+  margin-bottom: var(--n-space-1);
+}
+
+.account-menu__sections a {
+  font-family: var(--pub-font-sans);
+  font-size: var(--n-text-sm);
+  font-weight: 700;
+  color: var(--pub-text);
+  text-decoration: none;
+}
+
+.account-menu__panel > a,
+.account-menu__panel > button {
+  display: flex;
+  align-items: center;
+  gap: var(--n-space-2);
+  min-height: 2.5rem;
+  border: 0;
+  border-radius: var(--pub-radius-sm);
+  background: transparent;
+  padding-inline: var(--n-space-2);
+  color: var(--pub-text);
+  font-family: var(--pub-font-sans);
+  font-size: var(--n-text-sm);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.account-menu__panel > a:hover,
+.account-menu__panel > button:hover {
+  background: var(--pub-bg);
+}
+
+.account-menu__panel svg {
+  width: 1.05rem;
+  height: 1.05rem;
+  flex: 0 0 auto;
+}
+
+.search-dialog {
+  width: min(calc(100% - 2rem), 44rem);
+  max-height: calc(100dvh - 2rem);
+  border: 1px solid var(--pub-line);
+  border-radius: var(--pub-radius-md);
+  background: var(--pub-bg-raised);
+  color: var(--pub-text);
+  padding: clamp(1.25rem, 4vw, 2.25rem);
+}
+
+.search-dialog::backdrop {
+  background: rgb(12 13 10 / 0.72);
+  backdrop-filter: blur(4px);
+}
+
+.search-dialog__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--n-space-4);
+}
+
+.search-dialog__header p,
+.search-dialog__header h2 {
+  margin-bottom: var(--n-space-1);
+}
+
+.search-dialog__header p,
+.search-dialog__form > label {
+  color: var(--pub-text-soft);
+  font-size: var(--n-text-xs);
+  font-weight: 750;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.search-dialog__form {
+  margin-top: var(--n-space-8);
+}
+
+.search-dialog__form > div {
+  min-height: 3.5rem;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--n-space-2);
+  margin-top: var(--n-space-2);
+  border-bottom: 2px solid var(--pub-text);
+}
+
+.search-dialog__form input {
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--pub-text);
+  font-family: var(--pub-font-serif);
+  font-size: clamp(1rem, 4vw, 1.35rem);
+}
+
+.search-dialog__form button,
+.newsletter-form > button {
+  min-height: var(--button-height);
+  border: 0;
+  border-radius: var(--pub-radius-sm);
+  background: var(--pub-accent);
+  color: var(--pub-on-accent);
+  padding-inline: var(--n-space-5);
+  font-family: var(--pub-font-sans);
+  font-size: var(--n-text-sm);
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.search-dialog__form button:hover {
+  background: var(--pub-accent-hover);
+}
+
+.search-dialog__suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--n-space-2);
+  margin-top: var(--n-space-6);
+  font-size: var(--n-text-sm);
+}
+
+.search-dialog__suggestions span {
+  width: 100%;
+  color: var(--pub-text-soft);
+}
+
+.search-dialog__suggestions a {
+  border-bottom: 1px solid var(--pub-line-strong);
+  text-decoration: none;
+}
+
+.section-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--n-space-4);
+  margin-bottom: var(--n-space-8);
+}
+
+.section-heading h2 {
+  margin: var(--n-space-1) 0 0;
+  font-size: var(--n-text-3xl);
+}
+
+.section-heading > a {
+  min-height: var(--button-height);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--n-space-2);
+  color: var(--pub-accent);
+  font-size: var(--n-text-sm);
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.section-heading > a svg {
+  width: 1rem;
+}
+
+.story-media {
+  position: relative;
+  margin: 0;
+  overflow: hidden;
+  background: var(--pub-bg-raised);
+}
+
+.story-media--wide {
+  aspect-ratio: 16 / 10;
+}
+
+.story-media--square {
+  aspect-ratio: 1;
+}
+
+.story-media--cinema {
+  aspect-ratio: 16 / 9;
+}
+
+.story-media img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  transition: scale var(--n-duration-normal) ease;
+}
+
+/* Artwork composed to its own frame is shown whole. Cropping it to fill the
+   card cut the headline out of the house graphic, and cropping a licensed
+   photograph is how a watermark gets removed by accident. */
+.story-media--composed img {
+  object-fit: contain;
+}
+
+
+a:hover > .story-media img,
+.story-card__media-link:hover img {
+  scale: 1.015;
+}
+
+.story-media figcaption {
+  position: absolute;
+  right: var(--n-space-2);
+  bottom: var(--n-space-2);
+  max-width: calc(100% - 1rem);
+  background: rgb(10 11 9 / 0.76);
+  color: #fff;
+  padding: var(--n-space-1) var(--n-space-2);
+  font-size: 0.7rem;
+}
+
+.story-card {
+  min-width: 0;
+}
+
+.story-card__media-link,
+.lead-story__media {
+  display: block;
+}
+
+.story-card__content,
+.lead-story__content {
+  padding-top: var(--n-space-4);
+}
+
+.story-card h2,
+.story-card h3 {
+  margin: var(--n-space-2) 0;
+}
+
+.story-card h2 a,
+.story-card h3 a,
+.lead-story h1 a,
+.lead-story h2 a,
+.compact-story a {
+  text-decoration: none;
+}
+
+.story-card__dek,
+.lead-story__dek {
+  margin-bottom: var(--n-space-4);
+  color: var(--pub-text-soft);
+}
+
+.story-card--horizontal {
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr);
+  gap: var(--n-space-4);
+}
+
+.story-card--horizontal .story-card__content {
+  padding-top: 0;
+}
+
+.story-card--horizontal h2,
+.story-card--horizontal h3 {
+  font-size: var(--n-text-lg);
+}
+
+.story-card--horizontal .story-card__dek {
+  display: none;
+}
+
+.lead-story__kicker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--n-space-3);
+}
+
+.lead-story h1,
+.lead-story h2 {
+  margin: var(--n-space-3) 0;
+}
+
+.lead-story__dek {
+  font-size: var(--n-text-lg);
+}
+
+.compact-story {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--n-space-3);
+  padding-block: var(--n-space-4);
+  border-top: 1px solid var(--pub-line);
+}
+
+.compact-story__rank {
+  color: var(--pub-text-soft);
+  font-family: var(--pub-font-serif);
+  font-size: var(--n-text-xl);
+}
+
+.compact-story h2,
+.compact-story h3 {
+  margin: var(--n-space-1) 0 var(--n-space-2);
+  font-size: var(--n-text-lg);
+  line-height: 1.18;
+}
+
+.status-label,
+.format-label,
+.demo-label,
+.live-badge,
+.trend-state {
+  width: max-content;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--n-space-1);
+  border-radius: var(--n-radius-pill);
+  background: var(--pub-bg-raised);
+  color: var(--pub-text-soft);
+  padding: 0.32rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 750;
+  line-height: 1;
+}
+
+.status-label__dot {
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.status-label--live,
+.live-badge {
+  background: var(--surface-breaking);
+  color: var(--text-on-breaking);
+}
+
+.status-label--verified {
+  background: var(--surface-success);
+  color: var(--text-on-success);
+}
+
+.status-label--updated {
+  background: var(--surface-info);
+  color: var(--text-info);
+}
+
+.newsletter-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--n-space-2);
+}
+
+.newsletter-form label {
+  min-height: var(--input-height);
+  display: flex;
+  align-items: center;
+  gap: var(--n-space-2);
+  border: 1px solid var(--pub-line-strong);
+  border-radius: var(--button-radius);
+  background: var(--color-surface);
+  padding-inline: var(--n-space-4);
+  color: var(--pub-text-soft);
+}
+
+.newsletter-form input {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--pub-text);
+}
+
+.newsletter-form button:disabled,
+.search-dialog button:disabled {
+  opacity: 0.58;
+  cursor: not-allowed;
+}
+
+.form-message {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: var(--n-text-sm);
+}
+
+.form-message--success {
+  color: var(--color-success);
+}
+
+.form-message--error {
+  color: var(--color-danger);
+}
+
+.form-message a {
+  font-weight: 750;
+}
+
+.site-footer {
+  margin-top: var(--space-section);
+  background: var(--pub-inverse-bg);
+  color: var(--pub-inverse-text);
+}
+
+.site-footer__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--n-space-10) var(--n-space-6);
+  padding-block: var(--n-space-16);
+}
+
+.site-footer__brand {
+  grid-column: 1 / -1;
+}
+
+.site-footer .brand-mark {
+  color: var(--pub-inverse-text);
+}
+
+.site-footer__brand > p {
+  max-width: 28rem;
+  margin: var(--n-space-5) 0 var(--n-space-2);
+  color: var(--pub-inverse-text-soft);
+  font-family: var(--pub-font-sans);
+  font-size: var(--n-text-base);
+}
+
+.site-footer__brand small {
+  display: block;
+  max-width: 32rem;
+  color: var(--pub-inverse-text-soft);
+}
+
+.site-footer nav {
+  display: grid;
+  align-content: start;
+  gap: var(--n-space-2);
+}
+
+.site-footer nav h2 {
+  margin-bottom: var(--n-space-2);
+  color: var(--pub-inverse-text-soft);
+  font-family: var(--pub-font-sans);
+  font-size: var(--n-text-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.site-footer nav a {
+  width: max-content;
+  color: var(--pub-inverse-text);
+  font-family: var(--pub-font-sans);
+  font-size: var(--n-text-sm);
+  text-decoration: none;
+}
+
+.site-footer nav a:hover,
+.site-footer nav a:focus-visible {
+  color: var(--pub-accent);
+}
+
+.site-footer__bottom {
+  min-height: 4rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--n-space-2);
+  border-top: 1px solid var(--pub-inverse-line);
+  color: var(--pub-inverse-text-soft);
+  font-family: var(--pub-font-sans);
+  font-size: var(--n-text-xs);
+}
+
+.site-footer__bottom p {
+  margin: 0;
+}
+
+.site-footer__bottom div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--n-space-4);
+}
+
+.system-state,
+.auth-gate {
+  min-height: 100vh;
+  display: grid;
+  align-content: center;
+  gap: var(--n-space-10);
+  width: min(calc(100% - 2rem), 44rem);
+  margin-inline: auto;
+  padding-block: var(--n-space-12);
+}
+
+.system-state__brand,
+.auth-gate__brand {
+  width: max-content;
+  font-weight: 850;
+  letter-spacing: -0.04em;
+  text-decoration: none;
+}
+
+.system-state > div,
+.auth-gate > div {
+  padding: clamp(1.5rem, 5vw, 3rem);
+  border-top: 4px solid var(--pub-accent);
+  background: var(--color-surface);
+  box-shadow: var(--n-shadow-md);
+}
+
+.system-state h1,
+.auth-gate h1 {
+  margin-block: var(--n-space-3);
+  font-size: var(--n-text-3xl);
+}
+
+.system-state form {
+  display: flex;
+  gap: var(--n-space-2);
+  margin-block: var(--n-space-5);
+}
+
+.system-state input {
+  min-width: 0;
+  flex: 1;
+  min-height: var(--input-height);
+  border: 1px solid var(--pub-line);
+  padding-inline: var(--n-space-3);
+}
+
+.system-state button,
+.system-state > div > a,
+.auth-gate > div > a {
+  min-height: var(--button-height);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--button-radius);
+  background: var(--pub-accent);
+  color: #fff;
+  padding-inline: var(--n-space-5);
+  font-weight: 750;
+  text-decoration: none;
+}
+
+@media (min-width: 40rem) {
+  .newsletter-form:not(.newsletter-form--compact) {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .site-footer__bottom {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+@media (min-width: 48rem) {
+  .story-card--horizontal {
+    grid-template-columns: 9rem minmax(0, 1fr);
+  }
+
+  .story-card--horizontal .story-card__dek {
+    display: block;
+  }
+
+  .site-footer__grid {
+    grid-template-columns: minmax(17rem, 2fr) repeat(3, 1fr);
+  }
+
+  .site-footer__brand {
+    grid-column: auto;
+  }
+}
+
+@media (min-width: 60rem) {
+  /* The five sections fit inline at this width - the account menu keeps its
+     own copy hidden here so the same links are never offered twice. */
+  .primary-navigation {
+    display: flex;
+  }
+
+  .account-menu__sections {
+    display: none;
+  }
+}
+
+/* A card needs to say what kind of picture this is, not recite the licence.
+   The full credit and the AI disclosure live on the article page, where a
+   reader who cares can act on them. */
+.story-media__marker {
+  position: absolute;
+  left: var(--n-space-2);
+  bottom: var(--n-space-2);
+  right: auto;
+  max-width: none;
+  background: rgb(10 11 9 / 0.62);
+  color: rgb(255 255 255 / 0.86);
+  padding: 0.15rem 0.45rem;
+  border-radius: 0.25rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ------------------------------------------------------------------ *
+ * The citation spine, in card form. One tick per source, its height
+ * and weight set by tier; a primary record takes the verified colour.
+ * This is the signature - evidence shown on the card, before a click.
+ * ------------------------------------------------------------------ */
+.evidence {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.evidence__ticks {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 0.9rem;
+}
+
+/* Base tick is a low-tier supporting source: short and quiet. */
+.evidence__ticks i {
+  display: block;
+  width: 2px;
+  height: 45%;
+  border-radius: 1px;
+  background: var(--pub-text-soft);
+  opacity: 0.45;
+}
+
+/* Tier drives presence. A first-tier source stands full height in the
+   brand teal; the eye reads the tallest ticks as the strongest evidence. */
+.evidence__ticks i[data-tier="1"] {
+  height: 100%;
+  background: var(--pub-accent);
+  opacity: 1;
+}
+
+.evidence__ticks i[data-tier="2"] {
+  height: 68%;
+  opacity: 0.7;
+}
+
+/* A primary record - the story's own subject on the record - is the one
+   thing drawn in the verified colour, tier notwithstanding. */
+.evidence__ticks i[data-primary] {
+  background: var(--pub-verified);
+  opacity: 1;
+}
+
+.evidence__count {
+  font-family: var(--pub-font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  color: var(--pub-text-soft);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .evidence__ticks i {
+    transition: height 0.2s ease, opacity 0.2s ease;
+  }
+}

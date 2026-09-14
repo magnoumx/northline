@@ -1,0 +1,182 @@
+/**
+ * Motion and the evidence register.
+ *
+ * Two rules govern everything here.
+ *
+ * First: motion serves reading. A reader arrives to find out what happened, not
+ * to watch the page perform. So there are no scroll-triggered reveals on body
+ * copy - text that fades in as you scroll actively fights reading and makes a
+ * page feel slower than it is. The only motion is navigational: the photograph
+ * a reader clicked carries through to the article, which preserves their place
+ * instead of cutting to an unrelated screen.
+ *
+ * Second: every effect is progressive enhancement. View transitions are Chromium
+ * only today; where they are unsupported the browser performs an ordinary
+ * navigation and nothing is lost. Nothing here is load-bearing.
+ *
+ * The typographic half is the more important half. Northline's product is not
+ * the story - every outlet has the story - it is the evidence attached to it.
+ * Three faces already ship, so the site can afford to give evidence its own
+ * register: serif reports, sans operates the interface, and mono is reserved
+ * for the machinery a reader can check. Once that is consistent, a reader
+ * learns to recognise verifiable apparatus by its shape alone.
+ */
+
+@view-transition {
+  navigation: auto;
+}
+
+/*
+ * The hero photograph is the anchor between a card and the article behind it.
+ * Names are assigned per story in the markup so the browser can match the two
+ * elements across the navigation; everything else cross-fades.
+ */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 220ms;
+  animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* ---- The evidence register ----------------------------------------------- */
+
+/*
+ * Source count, tier badges and the verification line are not prose. Setting
+ * them in mono at a tighter size separates what the newsroom asserts from what
+ * a reader can go and check, without adding a colour or a box to say so.
+ */
+.article-page__verified,
+.source-tier,
+.source-kind,
+.source-stack__intro span,
+.article-verification__details summary strong {
+  font-family: var(--n-font-mono);
+  font-size: var(--n-text-xs);
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.article-page__verified {
+  font-size: var(--n-text-sm);
+}
+
+/* The dossier heading stays sans - it is a label, not a measurement. */
+.article-verification__details summary p {
+  font-family: var(--pub-font-sans);
+}
+
+/* ---- Signature: what remains unclear -------------------------------------- */
+
+/*
+ * The one section that earns emphasis. Almost no outlet publishes what it could
+ * not establish; this one does, and burying it under an ordinary <h2> wastes
+ * the most distinctive editorial act on the page.
+ *
+ * It is marked by a register change rather than an ornament: a mono eyebrow set
+ * against the accent, the reporting still in serif, and a single rule holding
+ * the block. This is the only place in the article where the page changes voice.
+ */
+.full-story-panel > section:has(> h2) > h2 {
+  position: relative;
+}
+
+.article-uncertainties {
+  border-left: 2px solid var(--pub-accent);
+  padding-left: clamp(1rem, 3vw, 1.5rem);
+}
+
+.article-uncertainties > h2 {
+  font-family: var(--n-font-mono);
+  font-size: var(--n-text-xs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--pub-accent);
+  margin-bottom: var(--n-space-3);
+}
+
+.article-uncertainties ul {
+  margin: 0;
+  padding-left: 1.1em;
+}
+
+.article-uncertainties li {
+  font-family: var(--pub-font-serif);
+  font-size: var(--reader-font-size);
+  line-height: var(--reader-line-height);
+}
+
+.article-uncertainties li + li {
+  margin-top: 0.5em;
+}
+
+.article-uncertainties p {
+  margin: 0;
+  font-family: var(--pub-font-serif);
+  font-size: var(--reader-font-size);
+  line-height: var(--reader-line-height);
+  color: var(--pub-text-soft);
+}
+
+/* ---- Card hover ----------------------------------------------------------- */
+
+/*
+ * A card lifts its headline toward the accent on hover. Transform and colour
+ * only - both compositor-friendly, neither triggers layout.
+ */
+.story-card h2 a,
+.story-card h3 a,
+.home-section__card h3 a,
+.river__list h3 a {
+  transition: color 160ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.story-card:hover h2 a,
+.story-card:hover h3 a,
+.home-section__card:hover h3 a,
+.river__list li:hover h3 a {
+  color: var(--pub-accent);
+}
+
+.story-card__media-link,
+.front__media {
+  overflow: hidden;
+}
+
+.story-card__media-link img,
+.front__media img {
+  transition: transform 320ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.story-card:hover .story-card__media-link img,
+.front__lead:hover .front__media img,
+.front__card:hover .front__media img {
+  transform: scale(1.02);
+}
+
+/* ---- Reduced motion ------------------------------------------------------- */
+
+/*
+ * A reader who has asked their system for less motion gets none of it. The
+ * view transition is skipped entirely rather than shortened, because a fast
+ * animation is still an animation.
+ */
+@media (prefers-reduced-motion: reduce) {
+  @view-transition {
+    navigation: none;
+  }
+
+  .story-card__media-link img,
+  .front__media img,
+  .story-card h2 a,
+  .story-card h3 a,
+  .home-section__card h3 a,
+  .river__list h3 a {
+    transition: none;
+  }
+
+  .story-card:hover .story-card__media-link img,
+  .front__lead:hover .front__media img,
+  .front__card:hover .front__media img {
+    transform: none;
+  }
+}

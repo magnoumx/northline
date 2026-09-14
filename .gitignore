@@ -1,0 +1,72 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/.vinext/
+/out/
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.sites-dev.*.log
+
+# env files (can opt-in for committing if needed)
+.env*
+!.env.example
+!.env.development.example
+!.env.production.example
+!.env.production.complete.example
+!.env.production.minimal.example
+!.env.preview.launch.example
+
+# vercel
+.vercel
+
+# typescript
+next-env.d.ts
+*.tsbuildinfo
+/dist/
+/.wrangler/
+/outputs/
+/work/
+
+# Playwright
+test-results/
+playwright-report/
+/blob-report/
+
+
+# Lighthouse + perf artifacts
+outputs/
+backups/
+
+
+# generated local secrets
+.dev.vars
+.dev.vars.generated
+
+# Generated production setup material
+outputs/northline-production-generated-secrets.json
+outputs/*.secret.*
+
+# committed placeholder template
+!.dev.vars.example

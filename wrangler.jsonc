@@ -1,0 +1,236 @@
+{
+  "name": "northline-newsroom-local",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-07-24",
+  "observability": {
+    "enabled": true
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "northline-development",
+      "database_id": "00000000-0000-4000-8000-000000000000",
+      "migrations_dir": "drizzle"
+    }
+  ],
+  "ai": {
+    "binding": "AI"
+  },
+  "r2_buckets": [
+    {
+      "binding": "ARTICLE_AUDIO",
+      "bucket_name": "northline-article-audio"
+    },
+    {
+      "binding": "MEDIA",
+      "bucket_name": "northline-media"
+    },
+    {
+      "binding": "MEDIA_QUARANTINE",
+      "bucket_name": "northline-media-quarantine"
+    }
+  ],
+  "queues": {
+    "producers": [
+      {
+        "binding": "EDITORIAL_QUEUE",
+        "queue": "northline-editorial"
+      },
+      {
+        "binding": "EDITORIAL_DLQ",
+        "queue": "northline-editorial-dlq"
+      },
+      {
+        "binding": "MEDIA_QUEUE",
+        "queue": "northline-media-jobs"
+      },
+      {
+        "binding": "MEDIA_DLQ",
+        "queue": "northline-media-jobs-dlq"
+      },
+      {
+        "binding": "AD_EVENT_QUEUE",
+        "queue": "northline-ad-events"
+      },
+      {
+        "binding": "AD_EVENT_DLQ",
+        "queue": "northline-ad-events-dlq"
+      }
+    ],
+    "consumers": [
+      {
+        "queue": "northline-editorial",
+        "dead_letter_queue": "northline-editorial-dlq",
+        "max_batch_size": 1,
+          "max_concurrency": 1,
+        "max_retries": 5
+      }
+    ]
+  },
+  "triggers": {
+    "crons": [
+      "*/15 * * * *",
+      "0 0 * * *",
+      "0 0 1 * *"
+    ]
+  },
+  "env": {
+    "preview": {
+      "name": "northline-newsroom-preview",
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "northline-preview",
+          "database_id": "00000000-0000-4000-8000-000000000001",
+          "migrations_dir": "drizzle"
+        }
+      ],
+      "ai": {
+    "binding": "AI"
+  },
+  "r2_buckets": [
+        {
+          "binding": "ARTICLE_AUDIO",
+          "bucket_name": "northline-article-audio-preview"
+        },
+        {
+          "binding": "MEDIA",
+          "bucket_name": "northline-media-preview"
+        },
+        {
+          "binding": "MEDIA_QUARANTINE",
+          "bucket_name": "northline-media-quarantine-preview"
+        }
+      ],
+      "queues": {
+        "producers": [
+          {
+            "binding": "EDITORIAL_QUEUE",
+            "queue": "northline-editorial-preview"
+          },
+          {
+            "binding": "EDITORIAL_DLQ",
+            "queue": "northline-editorial-preview-dlq"
+          },
+          {
+            "binding": "MEDIA_QUEUE",
+            "queue": "northline-media-jobs-preview"
+          },
+          {
+            "binding": "MEDIA_DLQ",
+            "queue": "northline-media-jobs-preview-dlq"
+          },
+          {
+            "binding": "AD_EVENT_QUEUE",
+            "queue": "northline-ad-events-preview"
+          },
+          {
+            "binding": "AD_EVENT_DLQ",
+            "queue": "northline-ad-events-preview-dlq"
+          }
+        ],
+        "consumers": [
+          {
+            "queue": "northline-editorial-preview",
+            "dead_letter_queue": "northline-editorial-preview-dlq",
+            "max_batch_size": 1,
+            "max_concurrency": 1,
+            "max_retries": 5
+          }
+        ]
+      },
+      "triggers": {
+        "crons": [
+          "*/15 * * * *",
+          "0 0 * * *",
+          "0 0 1 * *"
+        ]
+      },
+      "routes": []
+    },
+    "production": {
+      "name": "northline-newsroom",
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "northline-production",
+          "database_id": "00000000-0000-4000-8000-000000000002",
+          "migrations_dir": "drizzle"
+        }
+      ],
+      "ai": {
+    "binding": "AI"
+  },
+  "r2_buckets": [
+        {
+          "binding": "ARTICLE_AUDIO",
+          "bucket_name": "northline-article-audio"
+        },
+        {
+          "binding": "MEDIA",
+          "bucket_name": "northline-media"
+        },
+        {
+          "binding": "MEDIA_QUARANTINE",
+          "bucket_name": "northline-media-quarantine"
+        }
+      ],
+      "queues": {
+        "producers": [
+          {
+            "binding": "EDITORIAL_QUEUE",
+            "queue": "northline-editorial"
+          },
+          {
+            "binding": "EDITORIAL_DLQ",
+            "queue": "northline-editorial-dlq"
+          },
+          {
+            "binding": "MEDIA_QUEUE",
+            "queue": "northline-media-jobs"
+          },
+          {
+            "binding": "MEDIA_DLQ",
+            "queue": "northline-media-jobs-dlq"
+          },
+          {
+            "binding": "AD_EVENT_QUEUE",
+            "queue": "northline-ad-events"
+          },
+          {
+            "binding": "AD_EVENT_DLQ",
+            "queue": "northline-ad-events-dlq"
+          }
+        ],
+        "consumers": [
+          {
+            "queue": "northline-editorial",
+            "dead_letter_queue": "northline-editorial-dlq",
+            "max_batch_size": 1,
+            // A single consumer could not keep up: story generation takes
+            // minutes, five jobs arrive every fifteen, and everything behind a
+            // slow story - trend refresh, narration - starved behind it.
+            // Duplicate story runs are prevented in D1, not by serialising the
+            // whole newsroom.
+            "max_concurrency": 4,
+            "max_retries": 5
+          }
+        ]
+      },
+      "triggers": {
+        "crons": [
+          "*/15 * * * *",
+          "0 0 * * *",
+          "0 0 1 * *"
+        ]
+      },
+      "routes": [
+        {
+          "pattern": "usnorthline.com",
+          "custom_domain": true
+        }
+      ]
+    }
+  },
+  "routes": []
+}

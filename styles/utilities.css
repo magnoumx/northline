@@ -1,0 +1,198 @@
+:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 3px var(--focus-ring-contrast);
+}
+
+:root {
+  --reader-font-size: 20px;
+  --reader-line-height: 1.7;
+  --reader-paragraph-space: 1.25em;
+  --reader-base-measure: 44rem;
+  --reader-content-measure: var(--reader-base-measure);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: fixed;
+  z-index: 999;
+  top: var(--n-space-3);
+  left: var(--n-space-3);
+  translate: 0 -180%;
+  background: var(--color-text);
+  color: var(--color-page);
+  padding: var(--n-space-3) var(--n-space-4);
+  font-weight: 750;
+}
+
+.skip-link:focus {
+  translate: 0;
+}
+
+.demo-ribbon {
+  min-height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--n-space-2);
+  padding: var(--n-space-1) var(--n-space-3);
+  background: var(--color-text);
+  color: var(--color-inverse);
+  font-size: var(--n-text-xs);
+  text-align: center;
+}
+
+.demo-ribbon strong {
+  color: var(--text-inverse);
+  font-size: 0.7rem;
+  letter-spacing: 0.09em;
+}
+
+.text-button {
+  min-height: var(--button-height);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--n-space-2);
+  border: 0;
+  background: transparent;
+  color: var(--color-primary);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.spin {
+  animation: spin 900ms linear infinite;
+}
+
+@keyframes spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+html[data-reader-size="compact"] {
+  --reader-font-size: 17px;
+  --reader-line-height: 1.76;
+  --reader-paragraph-space: 1.12em;
+  --reader-base-measure: 46rem;
+}
+
+html[data-reader-size="comfortable"] {
+  --reader-font-size: 20px;
+  --reader-line-height: 1.7;
+  --reader-paragraph-space: 1.25em;
+  --reader-base-measure: 44rem;
+}
+
+html[data-reader-size="large"] {
+  --reader-font-size: 22px;
+  --reader-line-height: 1.68;
+  --reader-paragraph-space: 1.26em;
+  --reader-base-measure: 40rem;
+}
+
+html[data-reader-size="extra-large"] {
+  --reader-font-size: 25px;
+  --reader-line-height: 1.62;
+  --reader-paragraph-space: 1.32em;
+  --reader-base-measure: 36rem;
+}
+
+html[data-reader-width="narrow"] {
+  --reader-content-measure: calc(var(--reader-base-measure) - 6rem);
+}
+
+html[data-reader-width="balanced"] {
+  --reader-content-measure: var(--reader-base-measure);
+}
+
+html[data-reader-width="wide"] {
+  --reader-content-measure: calc(var(--reader-base-measure) + 8rem);
+}
+
+html[data-reader-contrast="high"][data-theme="light"] {
+  --surface-page: #fff;
+  --surface-primary: #fff;
+  --surface-secondary: #fff;
+  --surface-elevated: #fff;
+  --text-primary: #000;
+  --text-secondary: #000;
+  --text-tertiary: #000;
+  --border-subtle: #000;
+  --border-default: #000;
+  --border-strong: #000;
+  --focus-ring: #004fc4;
+  --color-primary: #0046a8;
+  --color-primary-hover: #002f73;
+  --surface-info: #fff;
+  --text-info: #000;
+}
+
+html[data-reader-contrast="high"][data-theme="dark"] {
+  --surface-page: #000;
+  --surface-primary: #000;
+  --surface-secondary: #000;
+  --surface-elevated: #000;
+  --text-primary: #fff;
+  --text-secondary: #fff;
+  --text-tertiary: #fff;
+  --border-subtle: #fff;
+  --border-default: #fff;
+  --border-strong: #fff;
+  --focus-ring: #ffec73;
+  --color-primary: #b8ceff;
+  --color-primary-hover: #dbe6ff;
+  --surface-info: #000;
+  --text-info: #fff;
+}
+
+html[data-reader-contrast="high"] {
+  --color-page: var(--surface-page);
+  --color-page-subtle: var(--surface-secondary);
+  --color-surface: var(--surface-primary);
+  --color-surface-raised: var(--surface-elevated);
+  --color-text: var(--text-primary);
+  --color-text-soft: var(--text-secondary);
+  --color-border: var(--border-subtle);
+  --color-border-strong: var(--border-strong);
+  --card-border: var(--border-strong);
+}
+
+html[data-reader-motion="reduce"] {
+  scroll-behavior: auto;
+}
+
+html[data-reader-motion="reduce"] *,
+html[data-reader-motion="reduce"] *::before,
+html[data-reader-motion="reduce"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  scroll-behavior: auto !important;
+  transition-duration: 0.01ms !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

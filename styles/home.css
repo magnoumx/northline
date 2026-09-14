@@ -1,0 +1,422 @@
+/*
+ * Front page.
+ *
+ * Written from scratch. The previous file styled six competing zones that all
+ * showed the same stories; this one styles three things - a lead, a river of
+ * everything else, and two quiet strips - and then gets out of the way.
+ *
+ * Separation comes from space, hierarchy comes from size. There are no boxes
+ * inside boxes and no decorative rules.
+ */
+
+.front,
+.river,
+.home-section,
+.trend-strip,
+.invite,
+.home-ad-placement,
+.home-empty {
+  width: min(100% - (2 * var(--space-page-inline)), 68rem);
+  margin-inline: auto;
+}
+
+/* ---- Lead ---------------------------------------------------------------- */
+
+.front {
+  padding-block: clamp(1.75rem, 1rem + 2.5vw, 3.25rem)
+    clamp(2rem, 1.25rem + 3vw, 3.5rem);
+  display: grid;
+  gap: clamp(2rem, 1.25rem + 3vw, 3.25rem);
+}
+
+.front__media {
+  display: block;
+  border-radius: var(--pub-radius-md);
+  overflow: hidden;
+}
+
+.front__media:focus-visible {
+  outline: 2px solid var(--pub-focus);
+  outline-offset: 3px;
+}
+
+.front__text {
+  display: grid;
+  gap: var(--n-space-2);
+}
+
+.front__lead {
+  display: grid;
+  gap: var(--n-space-5);
+}
+
+.front__lead .front__text {
+  gap: var(--n-space-3);
+}
+
+.front__lead h3 {
+  margin: 0;
+  font-family: var(--pub-font-serif);
+  font-size: clamp(1.85rem, 1.1rem + 2.9vw, 3.15rem);
+  line-height: 1.06;
+  letter-spacing: -0.022em;
+  text-wrap: balance;
+}
+
+.front__lead .dek {
+  font-size: clamp(1.02rem, 0.96rem + 0.4vw, 1.2rem);
+  line-height: 1.55;
+  max-width: 46ch;
+}
+
+/* ---- Secondary ----------------------------------------------------------- */
+
+.front__secondary {
+  display: grid;
+  gap: clamp(1.75rem, 1rem + 2.5vw, 2.75rem);
+}
+
+.front__card {
+  display: grid;
+  gap: var(--n-space-4);
+}
+
+.front__card h3 {
+  margin: 0;
+  font-family: var(--pub-font-serif);
+  font-size: clamp(1.2rem, 1.05rem + 0.7vw, 1.5rem);
+  line-height: 1.2;
+  letter-spacing: -0.012em;
+  text-wrap: balance;
+}
+
+.front__card .dek {
+  font-size: 0.95rem;
+  line-height: 1.55;
+  max-width: 48ch;
+}
+
+/* ---- Shared editorial type ---------------------------------------------- */
+
+.kicker {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--n-space-3);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--pub-accent);
+}
+
+.dek {
+  margin: 0;
+  color: var(--pub-text-soft);
+}
+
+.byline {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.6rem;
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--pub-text-soft);
+}
+
+.front a,
+.river a,
+.trend-strip a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.front h3 a:hover,
+.river h3 a:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: 1px;
+}
+
+/* ---- Section heads ------------------------------------------------------- */
+
+.strip-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--n-space-4);
+  padding-bottom: var(--n-space-4);
+  border-bottom: 1px solid var(--pub-line);
+}
+
+.strip-head h2 {
+  margin: 0;
+  font-family: var(--pub-font-serif);
+  font-size: clamp(1.3rem, 1.15rem + 0.7vw, 1.7rem);
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+}
+
+.strip-head a {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--pub-accent);
+  white-space: nowrap;
+}
+
+/* ---- Section shelves ------------------------------------------------------ */
+
+/*
+ * Sports, U.S. and Entertainment each get a shelf: one lead card with imagery
+ * and up to two headline-only cards beside it.
+ *
+ * This block was missing entirely when the component shipped, which meant the
+ * section had no width constraint and no grid - the shelf ran the full width of
+ * the viewport and its lead image was sized by the browser window rather than
+ * by the column, so on a wide screen a single photograph filled the fold.
+ */
+.home-section {
+  padding-block: clamp(1.5rem, 1rem + 2vw, 2.5rem);
+}
+
+.home-section a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.home-section h3 a:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+  text-decoration-thickness: 1px;
+}
+
+.home-section__grid {
+  display: grid;
+  gap: clamp(1.5rem, 1rem + 2vw, 2.25rem);
+  padding-top: clamp(1.25rem, 1rem + 1vw, 1.75rem);
+}
+
+.home-section__lead {
+  display: grid;
+  gap: var(--n-space-3);
+  min-width: 0;
+}
+
+.home-section__lead h3 {
+  margin: 0;
+  font-family: var(--pub-font-serif);
+  font-size: clamp(1.3rem, 1.1rem + 0.9vw, 1.75rem);
+  line-height: 1.18;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+.home-section__lead .dek {
+  font-size: 0.95rem;
+  line-height: 1.55;
+  max-width: 52ch;
+}
+
+.home-section__card {
+  display: grid;
+  gap: var(--n-space-2);
+  align-content: start;
+  min-width: 0;
+  padding-top: var(--n-space-4);
+  border-top: 1px solid var(--pub-line);
+}
+
+.home-section__card h3 {
+  margin: 0;
+  font-family: var(--pub-font-serif);
+  font-size: clamp(1.02rem, 0.95rem + 0.4vw, 1.2rem);
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+@media (min-width: 48rem) {
+  /* The lead keeps its own column so its image is bounded by the column, not
+     the viewport; the two secondary cards stack alongside it. */
+  .home-section__grid {
+    grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .home-section__lead {
+    grid-row: span 2;
+  }
+}
+
+/* ---- River --------------------------------------------------------------- */
+
+.river {
+  padding-block: clamp(1.5rem, 1rem + 2vw, 2.5rem);
+}
+
+.river__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+}
+
+.river__list li {
+  display: grid;
+  gap: var(--n-space-2);
+  padding-block: clamp(1.25rem, 1rem + 1vw, 1.75rem);
+  border-bottom: 1px solid var(--pub-line);
+}
+
+.river__list li:last-child {
+  border-bottom: 0;
+}
+
+.river__list h3 {
+  margin: 0;
+  font-family: var(--pub-font-serif);
+  font-size: clamp(1.12rem, 1rem + 0.6vw, 1.38rem);
+  line-height: 1.24;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.river__list .dek {
+  font-size: 0.94rem;
+  line-height: 1.55;
+  max-width: 62ch;
+}
+
+/* ---- Trending ------------------------------------------------------------ */
+
+.trend-strip {
+  padding-block: clamp(1.5rem, 1rem + 2vw, 2.5rem);
+}
+
+.trend-strip__list {
+  list-style: none;
+  margin: 0;
+  padding: var(--n-space-4) 0 0;
+  display: grid;
+}
+
+.trend-strip__list li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--n-space-4);
+  padding-block: var(--n-space-3);
+  border-bottom: 1px solid var(--pub-line);
+  font-size: 0.98rem;
+}
+
+.trend-strip__list li:last-child {
+  border-bottom: 0;
+}
+
+.trend-strip__list a:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.trend-strip__list em {
+  font-style: normal;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pub-text-soft);
+  white-space: nowrap;
+}
+
+/* ---- Newsletter ---------------------------------------------------------- */
+
+.invite {
+  margin-block: clamp(2rem, 1.25rem + 3vw, 3.5rem);
+  padding: clamp(1.5rem, 1rem + 2vw, 2.25rem);
+  border-radius: var(--pub-radius-md);
+  background: var(--pub-bg-raised);
+  display: grid;
+  gap: var(--n-space-5);
+}
+
+.invite h2 {
+  margin: 0 0 var(--n-space-1);
+  font-family: var(--pub-font-serif);
+  font-size: clamp(1.25rem, 1.1rem + 0.7vw, 1.6rem);
+  line-height: 1.2;
+}
+
+.invite p {
+  margin: 0;
+  font-size: 0.94rem;
+  color: var(--pub-text-soft);
+}
+
+/* ---- Advertising --------------------------------------------------------- */
+
+.home-ad-placement {
+  margin-block: clamp(1.5rem, 1rem + 2vw, 2.5rem);
+  /* Space is reserved so an arriving ad cannot push the page down. */
+  min-height: 6rem;
+  display: grid;
+  gap: var(--n-space-2);
+  align-content: center;
+  justify-items: center;
+  border-block: 1px solid var(--pub-line);
+  padding-block: var(--n-space-4);
+}
+
+.home-ad-placement span {
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ad-label-color);
+}
+
+/* ---- Empty --------------------------------------------------------------- */
+
+.home-empty {
+  padding-block: clamp(4rem, 3rem + 6vw, 7rem);
+  display: grid;
+  gap: var(--n-space-4);
+  justify-items: start;
+  max-width: 42rem;
+}
+
+.home-empty h1 {
+  margin: 0;
+  font-family: var(--pub-font-serif);
+  font-size: clamp(1.75rem, 1.4rem + 1.6vw, 2.4rem);
+  line-height: 1.15;
+}
+
+.home-empty p {
+  margin: 0;
+  color: var(--pub-text-soft);
+  line-height: 1.6;
+}
+
+.home-empty a {
+  font-weight: 600;
+  color: var(--pub-accent);
+}
+
+/* ---- Wide ---------------------------------------------------------------- */
+
+@media (min-width: 60rem) {
+  .front {
+    grid-template-columns: minmax(0, 1.65fr) minmax(17rem, 1fr);
+    align-items: start;
+    column-gap: clamp(2rem, 1rem + 3.5vw, 3.5rem);
+  }
+
+  .front__secondary {
+    gap: clamp(1.5rem, 1rem + 1.5vw, 2.25rem);
+  }
+
+  /* The river is a reading column, not a full-width table. */
+  .river__list li {
+    max-width: 54rem;
+  }
+}

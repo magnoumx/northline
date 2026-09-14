@@ -1,0 +1,48 @@
+:root {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface-page: #090e17;
+  --surface-primary: #101722;
+  --surface-secondary: #17202d;
+  --surface-elevated: #1d2837;
+  --surface-inverse: #f8fafc;
+  --surface-brand: #7fa2ff;
+  --surface-danger: #351817;
+
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-tertiary: #9cabbf;
+  --text-inverse: #111827;
+  --text-on-brand: #081020;
+  --text-on-accent: #081020;
+  --text-danger: #ffaaa1;
+  --text-success: #83d9a8;
+  --text-warning: #f2c777;
+
+  --border-subtle: #293648;
+  --border-default: #3b4a60;
+  --border-strong: #718096;
+  --focus-ring: #9ab6ff;
+  --focus-ring-contrast: #111827;
+
+  --color-primary: #9ab6ff;
+  --color-primary-hover: #bdd0ff;
+  --color-accent: #ff907c;
+  --color-accent-hover: #ffb1a2;
+  --n-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.35);
+  --n-shadow-md: 0 18px 48px rgb(0 0 0 / 0.32);
+  --n-shadow-lg: 0 30px 90px rgb(0 0 0 / 0.44);
+}
+
+@media (prefers-contrast: more) {
+  :root {
+    --border-subtle: var(--text-secondary);
+    --border-default: var(--text-primary);
+    --border-strong: var(--text-primary);
+    --text-secondary: var(--text-primary);
+    --text-tertiary: var(--text-primary);
+  }
+}

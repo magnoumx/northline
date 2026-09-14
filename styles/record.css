@@ -1,0 +1,227 @@
+/**
+ * The verification record.
+ *
+ * A data page, so the evidence register runs throughout: every figure is mono
+ * and tabular, and the prose around it stays serif. The one ornament is the
+ * bar itself, and its length is the datum - nothing here is decorative width.
+ */
+
+.record {
+  width: min(calc(100% - (var(--space-page-inline) * 2)), 60rem);
+  margin-inline: auto;
+  padding-block: clamp(3rem, 8vw, 6rem);
+}
+
+.record__eyebrow {
+  margin: 0 0 var(--n-space-3);
+  font-family: var(--n-font-mono);
+  font-size: var(--n-text-xs);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--pub-accent);
+}
+
+.record__open h1 {
+  margin: 0 0 var(--n-space-5);
+  font-family: var(--pub-font-serif);
+  font-size: clamp(2.4rem, 1.2rem + 5vw, 4.5rem);
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.record__lede {
+  max-width: 46ch;
+  margin: 0;
+  font-family: var(--pub-font-serif);
+  font-size: clamp(1.05rem, 1rem + 0.5vw, 1.3rem);
+  line-height: 1.6;
+  color: var(--pub-text-soft);
+}
+
+.record__headline-figure {
+  margin-top: clamp(3rem, 8vw, 6rem);
+}
+
+/* The one number the page exists to state. */
+.record__big {
+  margin: 0 0 clamp(2rem, 5vw, 3rem);
+  font-family: var(--pub-font-serif);
+  font-size: clamp(1.6rem, 1rem + 3vw, 2.8rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.record__big span {
+  font-family: var(--n-font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--pub-accent);
+}
+
+/* ---- Bars ---------------------------------------------------------------- */
+
+.record__bars {
+  display: grid;
+  gap: var(--n-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.record__bars li {
+  display: grid;
+  grid-template-columns: minmax(0, 14rem) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--n-space-4);
+}
+
+.record__bar-label {
+  font-size: var(--n-text-sm);
+  line-height: 1.3;
+}
+
+.record__bar-label small {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: var(--n-text-xs);
+  color: var(--pub-text-soft);
+}
+
+.record__bar-track {
+  display: block;
+  height: 0.6rem;
+  background: var(--pub-bg-raised);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.record__bar {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--pub-line-strong);
+}
+
+/* Colour encodes outcome, not decoration: refusal reads as the accent because
+   refusal is the subject of the page. */
+.record__bar--published { background: var(--pub-success); }
+.record__bar--rejected_early { background: var(--pub-accent); }
+.record__bar--human_review_required { background: var(--pub-line-strong); }
+.record__bar--retracted { background: var(--pub-accent-hover); }
+.record__bar--tier,
+.record__bar--cited { background: var(--pub-text-soft); }
+
+.record__bar-value {
+  font-family: var(--n-font-mono);
+  font-size: var(--n-text-sm);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  min-width: 4.5rem;
+}
+
+.record__bar-value small {
+  display: block;
+  font-size: var(--n-text-xs);
+  color: var(--pub-text-soft);
+}
+
+.record__note {
+  max-width: 46ch;
+  margin: clamp(2rem, 5vw, 3rem) 0 0;
+  border-left: 2px solid var(--pub-accent);
+  padding-left: var(--n-space-4);
+  font-family: var(--pub-font-serif);
+  font-size: var(--n-text-sm);
+  line-height: 1.6;
+  color: var(--pub-text-soft);
+}
+
+/* ---- Sections ------------------------------------------------------------- */
+
+.record__section,
+.record__close {
+  margin-top: clamp(4rem, 10vw, 8rem);
+}
+
+.record__section h2,
+.record__close h2 {
+  margin: 0 0 var(--n-space-4);
+  font-family: var(--pub-font-serif);
+  font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2.2rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.record__section .record__lede {
+  margin-bottom: clamp(2rem, 5vw, 3rem);
+}
+
+.record__definitions {
+  display: grid;
+  gap: var(--n-space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.record__definitions li {
+  display: grid;
+  grid-template-columns: minmax(0, 9rem) auto minmax(0, 1fr);
+  align-items: baseline;
+  gap: var(--n-space-4);
+  border-top: 1px solid var(--pub-line);
+  padding-top: var(--n-space-4);
+}
+
+.record__kind,
+.record__count {
+  font-family: var(--n-font-mono);
+  font-size: var(--n-text-xs);
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+}
+
+.record__count {
+  font-size: var(--n-text-lg);
+  color: var(--pub-accent);
+}
+
+.record__meaning {
+  font-size: var(--n-text-sm);
+  line-height: 1.5;
+  color: var(--pub-text-soft);
+}
+
+.record__close p {
+  max-width: 46ch;
+  font-family: var(--pub-font-serif);
+  line-height: 1.6;
+  color: var(--pub-text-soft);
+}
+
+.record__measured {
+  font-family: var(--n-font-mono) !important;
+  font-size: var(--n-text-xs);
+}
+
+@media (max-width: 42rem) {
+  .record__bars li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .record__bar-track {
+    grid-column: 1 / -1;
+    order: 3;
+  }
+
+  .record__definitions li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .record__meaning {
+    grid-column: 1 / -1;
+  }
+}

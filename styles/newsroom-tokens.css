@@ -1,0 +1,38 @@
+.newsroom-app,
+.auth-gate {
+  /* Semantic aliases for the protected workspace */
+  --nr-page: var(--color-page-subtle);
+  --nr-surface: var(--color-surface);
+  --nr-surface-raised: var(--color-surface-raised);
+  --nr-text: var(--color-text);
+  --nr-text-soft: var(--color-text-soft);
+  --nr-border: var(--color-border);
+  --nr-border-strong: var(--color-border-strong);
+  --nr-primary: var(--color-primary);
+  --nr-primary-hover: var(--color-primary-hover);
+  --nr-success: var(--color-success);
+  --nr-warning: var(--color-warning);
+  --nr-danger: var(--color-danger);
+  --nr-focus: var(--color-focus);
+
+  /* Component tokens */
+  --nr-sidebar-bg: #151914;
+  --nr-sidebar-surface: #20251f;
+  --nr-sidebar-text: #f4f5f0;
+  --nr-sidebar-soft: #aeb5aa;
+  --nr-sidebar-line: #30372f;
+  --nr-panel-radius: var(--n-radius-md);
+  --nr-control-radius: var(--n-radius-sm);
+  --nr-control-height: 2.75rem;
+  --nr-panel-padding: clamp(1rem, 2vw, 1.5rem);
+  --nr-shell-width: 90rem;
+  --nr-shadow: var(--n-shadow-sm);
+}
+
+:root[data-theme="dark"] .newsroom-app {
+  --nr-sidebar-bg: #0c0e0b;
+  --nr-sidebar-surface: #171a16;
+  --nr-sidebar-text: #f4f5f0;
+  --nr-sidebar-soft: #aeb5aa;
+  --nr-sidebar-line: #2d332c;
+}
