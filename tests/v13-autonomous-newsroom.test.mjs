@@ -72,6 +72,5 @@ test("public stories default to full article and have controlled AdSense slots",
 
 test("final operator configuration and launch documentation exist", () => {
   assert.equal(existsSync("scripts/configure-final-autonomous-newsroom.ps1"), true);
-  assert.equal(existsSync("docs/v13/FINAL_LAUNCH_AR.md"), true);
   assert.equal(existsSync("app/api/newsroom/autonomous/status/route.ts"), true);
 });

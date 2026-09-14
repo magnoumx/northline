@@ -227,7 +227,7 @@ function IntegrationPanel({
               </button>
               <button
                 type="button"
-                onClick={() => setNotice("Open docs/v11/PRODUCTION_SETUP_USNORTHLINE.md in the deployed source repository for the audited setup sequence.")}
+                onClick={() => setNotice("Open docs/SETUP.md in the source repository for the setup sequence.")}
               >
                 Setup instructions <ExternalLink aria-hidden="true" />
               </button>

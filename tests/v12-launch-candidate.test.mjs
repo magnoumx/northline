@@ -72,13 +72,3 @@ test("owner bootstrap works with remote D1 and Windows shells", () => {
   assert.match(bootstrap, /--file/u);
 });
 
-test("V12 operations documentation exists", () => {
-  for (const path of [
-    "docs/v12/LAUNCH_STEPS_AR.md",
-    "docs/v12/GOOGLE_SEO_AND_ADSENSE.md",
-    "docs/v12/AUTOMATION_POLICY.md",
-    "docs/v12/ANTHROPIC_AND_TRENDS_SETUP_AR.md",
-  ]) {
-    assert.equal(existsSync(path), true, `${path} must exist`);
-  }
-});

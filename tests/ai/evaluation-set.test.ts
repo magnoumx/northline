@@ -12,7 +12,7 @@ type EvaluationCase = {
 };
 
 describe("blind AI evaluation set", () => {
-  const file = resolve(process.cwd(), "docs/v3/ai/eval-cases.json");
+  const file = resolve(process.cwd(), "tests/ai/fixtures/eval-cases.json");
   const cases = JSON.parse(readFileSync(file, "utf8")) as EvaluationCase[];
 
   it("contains at least 50 unique, adjudicable tasks", () => {
