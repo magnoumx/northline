@@ -10,14 +10,12 @@ const routes = [
 export async function GET(request: Request) {
   const origin = new URL(request.url).origin;
   const advertisedRoutes = (await isSearchIndexingEnabled()) ? routes : [];
-  const generatedAt = new Date().toISOString();
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${advertisedRoutes
   .map(
     (route) => `  <sitemap>
     <loc>${origin}${route}</loc>
-    <lastmod>${generatedAt}</lastmod>
   </sitemap>`,
   )
   .join("\n")}

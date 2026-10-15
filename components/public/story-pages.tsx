@@ -267,7 +267,17 @@ function InlineFigure({
 }) {
   return (
     <figure className="article-inline-media">
-      <img src={item.url} alt={item.alt} loading="lazy" decoding="async" />
+      {/* Intrinsic size lets the browser reserve the box before the image
+          arrives. Without it every inline photo shifted the text below it,
+          which counts against the page's Cumulative Layout Shift. */}
+      <img
+        src={item.url}
+        alt={item.alt}
+        width="1600"
+        height="900"
+        loading="lazy"
+        decoding="async"
+      />
       {item.caption ? (
         <figcaption>
           {item.caption}

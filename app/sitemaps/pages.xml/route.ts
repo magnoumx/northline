@@ -63,15 +63,15 @@ export async function GET(request: Request) {
     { length: Math.max(0, totalLatestPages - 1) },
     (_, index) => ({
       path: `/latest/page/${index + 2}`,
-      lastModified: staticLastModified,
+      lastModified: undefined,
     }),
   );
   const paths = indexing
     ? [
-        ...staticPaths.map((path) => ({
-          path,
-          lastModified: staticLastModified,
-        })),
+        // No lastmod on static pages or archive pager pages. They do not change
+        // when an article is published, and a lastmod that always equals the newest
+        // story teaches Google to ignore this sitemap's dates altogether.
+        ...staticPaths.map((path) => ({ path, lastModified: undefined })),
         ...latestArchivePages,
         // A topic holding one or two stories is served `noindex` by the page
         // itself, so submitting it here would ask Google to spend a crawl on a

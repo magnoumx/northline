@@ -118,8 +118,13 @@ export async function generateMetadata({
   const noindex = PERSONAL_NOINDEX_ROUTES.has(root);
   return {
     title: readable,
+    description: noindex
+      ? undefined
+      : `Published reporting and source notes connected to ${readable} on Northline.`,
     alternates: noindex ? undefined : { canonical: `/${slug.join("/")}` },
-    robots: noindex ? { index: false, follow: false } : undefined,
+    // Spread rather than a robots key set to undefined: an explicit undefined
+    // clears the root layout directives (max-image-preview, max-snippet).
+    ...(noindex ? { robots: { index: false, follow: false } } : {}),
   };
 }
 

@@ -38,14 +38,6 @@ export async function generateMetadata(): Promise<Metadata> {
       shortcut: brand.favicon,
       apple: brand.favicon,
     },
-    alternates: {
-      // Without these the feeds exist but nothing can find them: no reader, no
-      // aggregator and no answer engine discovers a feed it is not told about.
-      types: {
-        "application/rss+xml": `${origin}/rss.xml`,
-        "application/atom+xml": `${origin}/atom.xml`,
-      },
-    },
     robots: {
       index: indexingEnabled,
       follow: indexingEnabled,
@@ -107,6 +99,11 @@ export default function RootLayout({
           rel="dns-prefetch"
           href="https://upload.wikimedia.org"
         />
+        {/* Feed autodiscovery lives here, not in metadata.alternates: any page that
+            sets its own canonical replaces the whole alternates object, which
+            silently dropped these links from every page. */}
+        <link rel="alternate" type="application/rss+xml" title="Northline" href="/rss.xml" />
+        <link rel="alternate" type="application/atom+xml" title="Northline" href="/atom.xml" />
       </head>
       <body className="antialiased">
         <Script
