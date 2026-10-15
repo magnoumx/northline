@@ -96,7 +96,7 @@ abstract class HttpAiProviderAdapter implements AiProviderAdapter {
             status: response.status,
             detail: await redactedProviderErrorDetail(response),
           });
-          throw providerHttpError(response.status);
+          throw providerHttpError(response.status, response.headers);
         }
         let payload: unknown;
         try {
@@ -308,7 +308,7 @@ export class AnthropicProviderAdapter extends HttpAiProviderAdapter {
             status: response.status,
             detail,
           });
-          const httpError = providerHttpError(response.status);
+          const httpError = providerHttpError(response.status, response.headers);
           if (detail) httpError.message = `${httpError.message} Provider said: ${detail}`;
           throw httpError;
         }
@@ -819,7 +819,25 @@ async function redactedProviderErrorDetail(response: Response): Promise<string> 
     .slice(0, 400);
 }
 
-function providerHttpError(status: number): AiRuntimeError {
+/**
+ * `retry-after` is either a delay in seconds or an HTTP date. Anything longer
+ * than the cap is not worth holding a queue message open for; the caller's
+ * cooldown handles that case instead.
+ */
+function parseRetryAfterMs(header: string | null): number | undefined {
+  if (!header) return undefined;
+  const seconds = Number(header.trim());
+  const milliseconds = Number.isFinite(seconds)
+    ? seconds * 1_000
+    : Date.parse(header) - Date.now();
+  if (!Number.isFinite(milliseconds) || milliseconds <= 0) return undefined;
+  return Math.min(milliseconds, 30_000);
+}
+
+function providerHttpError(
+  status: number,
+  headers?: Headers,
+): AiRuntimeError {
   if (status === 408 || status === 504) {
     return new AiRuntimeError(
       "AI_PROVIDER_TIMEOUT",
@@ -827,11 +845,15 @@ function providerHttpError(status: number): AiRuntimeError {
     );
   }
   if (status === 429) {
-    return new AiRuntimeError(
+    const rateLimited = new AiRuntimeError(
       "AI_PROVIDER_RATE_LIMITED",
       "The AI provider rate-limited the request.",
       true,
     );
+    rateLimited.retryAfterMs = parseRetryAfterMs(
+      headers?.get("retry-after") ?? null,
+    );
+    return rateLimited;
   }
   if (status === 401 || status === 403) {
     return new AiRuntimeError(

@@ -38,6 +38,14 @@ export async function generateMetadata(): Promise<Metadata> {
       shortcut: brand.favicon,
       apple: brand.favicon,
     },
+    alternates: {
+      // Without these the feeds exist but nothing can find them: no reader, no
+      // aggregator and no answer engine discovers a feed it is not told about.
+      types: {
+        "application/rss+xml": `${origin}/rss.xml`,
+        "application/atom+xml": `${origin}/atom.xml`,
+      },
+    },
     robots: {
       index: indexingEnabled,
       follow: indexingEnabled,

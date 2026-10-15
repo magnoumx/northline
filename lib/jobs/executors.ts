@@ -563,10 +563,29 @@ export async function executeDataHygiene(
     if (changed < BATCH) break;
   }
 
+  // Finished job-run history past two weeks. Runs still in flight or awaiting
+  // retry are never touched.
+  const jobRunCutoff = now - boundedInteger(environment.DATA_HYGIENE_JOB_RUN_MAX_AGE_DAYS, 1, 90, 14) * 86_400_000;
+  let jobRunsDeleted = 0;
+  for (let batch = 0; batch < MAX_BATCHES; batch += 1) {
+    const changed =
+      (await db
+        .prepare(
+          `DELETE FROM job_runs WHERE id IN (
+             SELECT id FROM job_runs
+             WHERE completed_at IS NOT NULL AND completed_at < ?1
+             LIMIT ?2)`,
+        )
+        .bind(jobRunCutoff, BATCH)
+        .run()).meta.changes ?? 0;
+    jobRunsDeleted += changed;
+    if (changed < BATCH) break;
+  }
   await recordJobDiagnostic(db, "maintenance.data_hygiene", "cleaned", {
     expiredAiRequests,
     failedRunsDeleted,
     deadTrendsDeleted,
+    jobRunsDeleted,
     trendMaxAgeDays,
     runMaxAgeDays,
   });
@@ -739,6 +758,59 @@ async function announceToIndexNow(
   );
 }
 
+/**
+ * A provider that has spent its daily quota answers every further request with
+ * the same 429. Recording one cooldown row lets the next ninety-five scheduler
+ * ticks skip the work instead of each starting stories that cannot be written.
+ */
+async function recordAiProviderCooldown(
+  db: D1Database,
+  environment: Record<string, string | undefined>,
+  detail: Record<string, unknown> = {},
+): Promise<void> {
+  const minutes = boundedInteger(
+    environment.AI_RATE_LIMIT_COOLDOWN_MINUTES,
+    1,
+    1_440,
+    60,
+  );
+  await recordJobDiagnostic(db, "ai.provider", "rate_limited", {
+    ...detail,
+    cooldownUntil: Date.now() + minutes * 60_000,
+  });
+}
+
+/**
+ * Returns the moment the newest rate-limit cooldown expires, or null when no
+ * cooldown is open. Reading the audit log keeps the signal in the one place
+ * operators already look for job history.
+ */
+async function readAiProviderCooldownUntil(
+  db: D1Database,
+): Promise<number | null> {
+  const row = await db
+    .prepare(
+      `SELECT metadata_json AS metadataJson
+       FROM audit_logs
+       WHERE action='JOB_DIAGNOSTIC' AND target_id='ai.provider'
+         AND decision='rate_limited'
+       ORDER BY occurred_at DESC LIMIT 1`,
+    )
+    .first<{ metadataJson: string | null }>();
+  if (!row?.metadataJson) return null;
+  try {
+    const parsed: unknown = JSON.parse(row.metadataJson);
+    const until =
+      parsed && typeof parsed === "object"
+        ? Number((parsed as Record<string, unknown>).cooldownUntil)
+        : Number.NaN;
+    if (!Number.isFinite(until) || until <= Date.now()) return null;
+    return until;
+  } catch {
+    return null;
+  }
+}
+
 export async function executeAutonomousDraftSchedule(
   services: NorthlineJobServices,
 ): Promise<void> {
@@ -747,6 +819,13 @@ export async function executeAutonomousDraftSchedule(
   const queue = services.EDITORIAL_QUEUE;
   if (!queue) throw new Error("AUTONOMOUS_NEWSROOM_QUEUE_UNAVAILABLE");
   const db = services.DB ?? (await getD1Binding());
+  const cooldownUntil = await readAiProviderCooldownUntil(db);
+  if (cooldownUntil !== null) {
+    await recordJobDiagnostic(db, "article.autodraft", "ai_provider_cooldown", {
+      cooldownUntil,
+    });
+    return;
+  }
   const batchSize = boundedInteger(environment.AUTONOMOUS_DRAFT_BATCH_SIZE, 1, 20, 2);
   const minimumScore =
     environment.AUTONOMOUS_PROCESS_ALL_ACTIVE_SIGNALS === "true"
@@ -873,7 +952,21 @@ export async function executeAutonomousDraftSchedule(
              THEN 6 ELSE 0
            END
        AS INTEGER) AS priorityScore
-     FROM trends t
+     -- Narrow to the freshest eligible trends BEFORE the per-row scoring below.
+     -- The scoring runs a dozen text scans per row and the de-duplication joins every
+     -- run, so over the whole table (10k+ rows) the query exceeded D1's per-query
+     -- CPU limit and the autodraft job went to the dead-letter queue every tick.
+     FROM (
+       SELECT * FROM trends
+       WHERE editorial_state IN ('CANDIDATE','WATCH','SIGNAL_DETECTED','RESEARCHING')
+         AND latest_detected_at >= (unixepoch() - 1209600) * 1000
+         AND (
+           score >= ?1
+           OR ((unixepoch() * 1000 - first_detected_at) < 259200000 AND source_velocity >= 6)
+         )
+       ORDER BY latest_detected_at DESC
+       LIMIT 300
+     ) t
      LEFT JOIN story_opportunities o ON o.trend_id=t.id
      LEFT JOIN autonomous_story_runs r ON r.trend_id=t.id
      WHERE (
@@ -1126,6 +1219,9 @@ export async function executeAutonomousArticleGenerate(
         runId,
       )
       .run();
+    if (errorCode === "AI_PROVIDER_RATE_LIMITED") {
+      await recordAiProviderCooldown(db, environment, { runId, trendId });
+    }
     if (isNonRetryableAutonomousError(error)) return;
     throw error;
   }
@@ -2015,6 +2111,7 @@ export async function executeOpportunityRescore(services: NorthlineJobServices):
   const rows = await db.prepare(
     `SELECT id, normalized_term, category, score, risk_level, score_explanation_json
      FROM trends WHERE editorial_state IN ('SIGNAL_DETECTED','CANDIDATE')
+     AND latest_detected_at >= (unixepoch() - 1209600) * 1000
      ORDER BY score DESC, latest_detected_at DESC LIMIT 100`,
   ).all<{ id: string; normalized_term: string; category: string; score: number; risk_level: string; score_explanation_json: string }>();
   const now = Date.now();

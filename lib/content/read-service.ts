@@ -138,12 +138,18 @@ export function invalidatePublicContentCache(): void {
   cachedSnapshot = undefined;
 }
 
+const PUBLIC_SNAPSHOT_STORY_LIMIT = 60;
+
 async function buildSnapshot(
   repository: PublicContentRepository,
   mode: PublicContentSnapshot["mode"],
 ): Promise<PublicContentSnapshot> {
   const [stories, trends, readership] = await Promise.all([
-    repository.listPublishedStories(60),
+    // Do not raise this without measuring. Hydrating 500 stories per request
+    // exceeded D1's per-query CPU limit and took the homepage and feeds down
+    // (2026-10-15). Topic pages and the image sitemap that outgrow sixty belong
+    // on their own bounded queries, not on a bigger shared snapshot.
+    repository.listPublishedStories(PUBLIC_SNAPSHOT_STORY_LIMIT),
     repository.listPublishedTrends(10),
     repository.listMostReadArticleIds(48),
   ]);

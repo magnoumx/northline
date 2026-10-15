@@ -20,6 +20,13 @@ export type AiRuntimeErrorCode =
   | "AI_CIRCUIT_OPEN";
 
 export class AiRuntimeError extends Error {
+  /**
+   * How long the provider asked us to wait, when it said so. Retrying a
+   * rate-limited request after the default 125ms only spends another request
+   * against the same exhausted quota.
+   */
+  retryAfterMs?: number;
+
   constructor(
     readonly code: AiRuntimeErrorCode,
     message: string,

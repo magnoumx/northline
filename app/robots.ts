@@ -19,7 +19,20 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/newsroom/", "/api/"],
+        // Everything below is either private, personal, or a URL space with no
+        // indexable content. Leaving them crawlable spends the crawl budget
+        // that the article archive needs.
+        disallow: [
+          "/newsroom/",
+          "/api/",
+          "/advertiser/",
+          "/dev-audit/",
+          "/search",
+          "/account",
+          "/saved",
+          "/following",
+          "/newsletter/confirm",
+        ],
       },
     ],
     sitemap: [

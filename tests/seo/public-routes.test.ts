@@ -17,6 +17,11 @@ describe("public route metadata", () => {
         title: "Corrections policy",
         description: expect.any(String),
         url: "/corrections",
+        siteName: "Northline",
+        locale: "en_US",
+        // The page-level openGraph block replaces the root one, so the share image
+        // has to be declared here or every static route shares as a blank card.
+        images: [{ url: "/og.png", width: 1200, height: 630 }],
       },
     });
   });

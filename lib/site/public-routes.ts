@@ -123,6 +123,13 @@ export function publicRouteMetadata(routeKey: string): Metadata | null {
       title: defined.title,
       description: defined.description,
       url: `/${routeKey}`,
+      siteName: "Northline",
+      locale: "en_US",
+      // Next.js replaces the parent openGraph object rather than merging it, so
+      // declaring one here without images dropped the site card from every
+      // static route - and, because twitter falls back to openGraph, the X card
+      // with it. Shares of these pages rendered blank.
+      images: [{ url: "/og.png", width: 1200, height: 630 }],
     },
   };
 }

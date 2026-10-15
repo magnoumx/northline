@@ -1258,30 +1258,39 @@ function autonomousAiEnvironment(
 
   return {
     ...environment,
+    // Google's free tier allows twenty generate_content requests per day in
+    // total. One story spends several, so a Google-first newsroom stops
+    // producing before the first hour of every day is out - which is exactly
+    // what happened for the week of 2026-09-17: 753 runs, every one of them
+    // dead on a 429, and not one article published. The paid provider now does
+    // the drafting work, and Google's small daily allowance is reserved for the
+    // one call that has to come from a different provider than the draft: the
+    // independent fact review. Both chains keep the other provider as a
+    // fallback so one exhausted account cannot stop the newsroom again.
     AI_RESEARCH_CHAIN:
       trimmedSetting(environment.AUTONOMOUS_AI_RESEARCH_CHAIN) ??
       trimmedSetting(environment.AI_RESEARCH_CHAIN) ??
-      `google:${googleModel}`,
+      `anthropic:${anthropicModel},google:${googleModel}`,
     AI_FACT_REVIEW_CHAIN:
       trimmedSetting(environment.AUTONOMOUS_AI_FACT_REVIEW_CHAIN) ??
       trimmedSetting(environment.AI_FACT_REVIEW_CHAIN) ??
-      `anthropic:${anthropicModel}`,
+      `google:${googleModel},anthropic:${anthropicModel}`,
     AI_COPY_EDIT_CHAIN:
       trimmedSetting(environment.AUTONOMOUS_AI_COPY_EDIT_CHAIN) ??
       trimmedSetting(environment.AI_COPY_EDIT_CHAIN) ??
-      `google:${googleLiteModel}`,
+      `anthropic:${anthropicModel},google:${googleLiteModel}`,
     AI_SEO_CHAIN:
       trimmedSetting(environment.AUTONOMOUS_AI_SEO_CHAIN) ??
       trimmedSetting(environment.AI_SEO_CHAIN) ??
-      `google:${googleLiteModel}`,
+      `anthropic:${anthropicModel},google:${googleLiteModel}`,
     AI_CLASSIFICATION_CHAIN:
       trimmedSetting(environment.AUTONOMOUS_AI_CLASSIFICATION_CHAIN) ??
       trimmedSetting(environment.AI_CLASSIFICATION_CHAIN) ??
-      `google:${googleLiteModel}`,
+      `anthropic:${anthropicModel},google:${googleLiteModel}`,
     AI_EXTRACTION_CHAIN:
       trimmedSetting(environment.AUTONOMOUS_AI_EXTRACTION_CHAIN) ??
       trimmedSetting(environment.AI_EXTRACTION_CHAIN) ??
-      `google:${googleLiteModel}`,
+      `anthropic:${anthropicModel},google:${googleLiteModel}`,
   };
 }
 

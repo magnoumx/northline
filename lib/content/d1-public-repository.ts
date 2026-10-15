@@ -308,9 +308,9 @@ async function hydrateStories(
     // Everything that is not the hero runs inside the reporting, spaced through
     // the body rather than stacked above it.
     const inlineMedia = versionMedia
-      .filter((candidate) => candidate.role !== "HERO" && candidate.url)
+      .filter((candidate) => candidate.role !== "HERO" && servableImageUrl(candidate.url))
       .map((candidate, index) => ({
-        url: candidate.url as string,
+        url: servableImageUrl(candidate.url) as string,
         alt: candidate.altText ?? row.headline,
         caption: candidate.caption ?? candidate.attribution ?? "",
         sourceUrl: candidate.originalUrl ?? undefined,
@@ -355,8 +355,8 @@ async function hydrateStories(
       // is an SVG of about 2 KB and is the correct reader-facing fallback; the
       // social card is still used for og:image, where SVG is not supported.
       image:
-        media?.url ??
-        readerImage(stringValue(structured.image)) ??
+        servableImageUrl(media?.url) ??
+        servableImageUrl(readerImage(stringValue(structured.image))) ??
         `/story-image/${row.slug}`,
       imageAlt:
         media?.altText ??
@@ -465,6 +465,42 @@ function readCitationLocator(
     return trimmed as `https://${string}`;
   }
   return `/sources/${sourceId}`;
+}
+
+/**
+ * Hosts the Content-Security-Policy lets the page load images from. A stored URL
+ * on any other host is not a slightly worse image, it is a broken one: the
+ * browser refuses it and the card shows alt text where the picture should be.
+ */
+const SERVABLE_IMAGE_HOSTS = new Set([
+  "upload.wikimedia.org",
+  "images.unsplash.com",
+]);
+
+export function servableImageUrl(
+  value: string | null | undefined,
+): string | undefined {
+  if (!value) return undefined;
+  // Our own graphics are same-origin paths and always load.
+  if (value.startsWith("/")) return value;
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    return undefined;
+  }
+  if (url.protocol !== "https:") return undefined;
+  // Commons hands out thumbnail links on thumb.wikimedia.org that serve the
+  // same bytes as upload.wikimedia.org, which is the host the policy allows.
+  if (url.hostname === "thumb.wikimedia.org") {
+    url.hostname = "upload.wikimedia.org";
+  }
+  if (!SERVABLE_IMAGE_HOSTS.has(url.hostname)) return undefined;
+  // The utm_* tracking suffix Commons appends is noise in a page-embedded image.
+  for (const key of [...url.searchParams.keys()]) {
+    if (key.startsWith("utm_")) url.searchParams.delete(key);
+  }
+  return url.toString();
 }
 
 function readerImage(value: string | undefined): string | undefined {

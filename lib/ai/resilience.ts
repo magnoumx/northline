@@ -86,7 +86,10 @@ export async function executeWithResilience<T>({
     } catch (error) {
       lastError = toSafeAiError(error);
       if (!lastError.retryable || attempt === attempts) break;
-      await sleeper(Math.min(2_000, 125 * 2 ** (attempt - 1)));
+      // A provider that named its own wait knows better than the backoff curve.
+      await sleeper(
+        lastError.retryAfterMs ?? Math.min(2_000, 125 * 2 ** (attempt - 1)),
+      );
     }
   }
 

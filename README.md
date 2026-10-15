@@ -48,15 +48,28 @@ flowchart LR
 - **Design.** "Provenance" is a dark-first editorial theme with a serif type scale. Each article card shows a small row of tick marks, one per source, with primary sources highlighted.
 - **Optional article audio.** Articles can be narrated by a text-to-speech provider. The audio is stored in R2, deduplicated by content hash and capped by a budget.
 
+## Production incidents (and how they were diagnosed)
+
+This ran against real traffic and real provider limits, so most of the interesting engineering is in what broke. A few of the incidents, in the order they were found:
+
+| Symptom | Root cause | Fix |
+| --- | --- | --- |
+| Zero articles for days; hundreds of identical failures per day | The free Gemini tier allows ~20 requests per **day**, and the scheduler kept starting new stories against an empty quota | Provider **cooldown circuit breaker** (a 429 pauses scheduling for an hour), `Retry-After` honored on rate limits, paid-provider-first model chains with fallback |
+| Scheduler jobs dead-lettering every tick | A candidate query ran a dozen text scans per row over a 10k-row table and exceeded D1's per-query CPU limit | Narrow to the freshest 300 eligible rows with an indexed prefilter *before* scoring; bounded the rescore query; regression tests pin both |
+| Homepage cards showed alt text instead of photos | Stored image URLs used a Wikimedia host the Content-Security-Policy didn't allow | Normalize image URLs at read time to an allowed host, strip tracking params, and fall back to the house graphic for any unknown host |
+| A cleanup job that would have failed daily | It tried to prune `audit_logs`, which is append-only by database trigger | Found by testing against the real database; the delete was removed and a test now forbids it |
+| Whole site briefly returned empty pages | A "raise the story snapshot to 500" change exceeded the same D1 CPU limit | Rolled back within minutes; the limit now carries a comment explaining why not to raise it blindly |
+
+Two lessons that shaped the design: the database is a *safety net* (append-only audit log, frozen published versions) so application bugs can't rewrite history, and every automated decision records a reason a human can read, so "why didn't it publish?" is a query, not a mystery.
 ## Tech stack
 
 | Layer | Tools |
 | --- | --- |
 | App | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS 4 |
 | Runtime | Cloudflare Workers via vinext, D1 (SQLite), R2, Queues, Cron Triggers, Access |
-| Data | Drizzle ORM, 19 SQL migrations, Zod validation |
+| Data | Drizzle ORM, 20 SQL migrations, Zod validation |
 | AI | Google Gemini (research and drafting), Anthropic Claude (independent fact review) |
-| Testing | Vitest (727 tests), Playwright, ESLint, `tsc --noEmit` |
+| Testing | Vitest (739 tests), Playwright, ESLint, `tsc --noEmit` |
 
 ## Repository layout
 
