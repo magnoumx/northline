@@ -2,7 +2,7 @@
 
 **An autonomous U.S. news site that finds breaking stories, researches them, drafts them with AI, has a second model fact-check the draft, and publishes only what passes a set of evidence checks. It all runs as one Cloudflare Worker.**
 
-[![CI](https://github.com/omarmohelal/northline/actions/workflows/ci.yml/badge.svg)](https://github.com/omarmohelal/northline/actions/workflows/ci.yml)
+[![CI](https://github.com/magnoumx/northline/actions/workflows/ci.yml/badge.svg)](https://github.com/magnoumx/northline/actions/workflows/ci.yml)
 ![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178c6)
 ![Next.js](https://img.shields.io/badge/Next.js-16-black)
 ![Cloudflare Workers](https://img.shields.io/badge/Cloudflare-Workers%20·%20D1%20·%20R2%20·%20Queues-f38020)

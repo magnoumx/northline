@@ -32,7 +32,7 @@ const newsroomHost = normalizeDomain(
   await ask("newsroom-domain", "Protected newsroom hostname", `newsroom.${domain}`),
 );
 const email = (await ask("owner-email", "Real owner email", "owner@example.com")).toLowerCase();
-const username = await ask("username", "Owner username", "magnoumx");
+const username = await ask("username", "Owner username", "owner");
 const teamDomain = normalizeTeamDomain(
   await ask("access-team-domain", "Cloudflare Access team domain (blank until created)", ""),
 );

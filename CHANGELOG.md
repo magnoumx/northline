@@ -1,48 +1,27 @@
 # Changelog
 
-## 0.1.0 — 2026-07-24
+Notable changes, newest first. Dates are when the change shipped to production.
 
-### Added
+## 2026-10
 
-- Complete responsive public-news and Newsroom OS reference frontend
-- Story Intelligence, live blog, standard article, trend, search, newsletter,
-  topic, directory, account, policy, and system-state surfaces
-- Explainable editorial scoring, claim gates, sensitive routing, source tiers,
-  deduplication, state transitions, permissions, and tests
-- D1 schema and newsletter consent endpoint
-- SEO metadata, structured data, feeds, and sitemap infrastructure
-- Competitor research, product specification, architecture, policy, security,
-  operations, and launch documentation
+- **Pipeline resilience.** Provider rate limits open a cooldown instead of being retried hundreds of times a day; `Retry-After` is honored; research and drafting prefer the paid provider with the free one as fallback.
+- **D1 CPU budget.** The draft-candidate and opportunity-rescore queries narrow to recent rows before per-row scoring, fixing jobs that were dead-lettering on D1's per-query CPU limit.
+- **Images.** Stored image URLs are normalized to hosts the Content-Security-Policy allows; unknown hosts fall back to the generated house graphic.
+- **SEO and answer engines.** `llms.txt` and `llms-full.txt`, feed autodiscovery links, share images on static routes, a tighter `robots.txt`.
+- **AdSense.** Publisher wiring with a verification-only mode; ad slots stay gated on consent.
 
-### Safety
+## 2026-09
 
-- Auto-publication remains disabled
-- Sensitive content requires human approval
-- Fictional seed content is labeled across product surfaces
-- Advertising and live third-party connectors are not activated
+- **Data hygiene.** A daily job prunes expired AI request rows, failed story runs and dead trends in bounded batches; indexes on the autonomous-run tables.
+- **Source authority.** First-party sources are recognized per story subject, with spoof guards.
+- **Independent fact review.** Provider error bodies are captured (secrets redacted) so a failing reviewer is diagnosable.
 
-## V9 production wiring
-- Connected GDELT trend ingestion and D1 opportunity scoring to durable jobs.
-- Added authenticated AI review-package orchestration and newsroom analytics summary APIs.
-- Connected article-audio queue execution to R2 and OpenAI TTS transport.
-- Added V9 production blocker and operations documentation.
+## 2026-08
 
-## 0.2.0 — Production candidate
+- **"Provenance" redesign.** Dark-first editorial theme, serif type scale, and a per-article source "spine".
+- **Autonomous publishing.** Deterministic gates decide approval; held stories show a plain-language reason in the newsroom queue.
+- **Recency gate** against stale retrospectives, and topic selection weighted by how many newsrooms are covering a story.
 
-- Added production-safe CMS draft, claim verification, human review, approval, publication, and correction workflows.
-- Added protected source, media quarantine, newsletter issue, analytics, jobs, audit, staff, role, and integration operations.
-- Added unified multi-briefing newsletter double opt-in.
-- Added Cloudflare production provisioning, runtime bundle, readiness, and release verification tooling.
-- Removed production fallback to fictional fixtures and added explicit empty states.
-- Added migrations 0008 and 0009.
+## 2026-07
 
-## 0.3.0 — V12 Launch Candidate
-
-- Fixed Cloudflare Workers fetch compatibility by using `redirect: "manual"` across Access, AI, GDELT, and Google Trends adapters; updated stale provider tests.
-- Added Google Trends U.S. Trending Now RSS discovery alongside GDELT and persisted provenance-rich trend observations.
-- Added bounded Anthropic web search with domain controls and source URL preservation.
-- Added controlled `approved_only` automatic publication every 15 minutes, with low-risk, non-sensitive, category/format allowlists, audit actor, idempotency, and daily limits.
-- Added Google Search Console verification metadata, Google launch validation, guarded AdSense loader, normalized dynamic `ads.txt`, and conditional CSP origins.
-- Added real-content readiness floor and controlled indexing/AdSense gates.
-- Added V12 Arabic launch, SEO/AdSense, Claude/Trends, and automation runbooks.
-- Fixed one-time owner bootstrap on Windows and remote D1 by using `npx.cmd` and transaction-free idempotent SQL.
+- Initial build: public site, newsroom workspace, D1 schema and migrations, editorial state machine, sourcing and claim gates, SEO metadata, feeds and sitemaps.
