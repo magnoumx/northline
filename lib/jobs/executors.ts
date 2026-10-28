@@ -2557,7 +2557,6 @@ function toStringEnvironment(value: Record<string, unknown> | undefined): Record
 function asRecord(value: unknown): Record<string, unknown> { return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {}; }
 function stringValue(value: unknown): string | null { return typeof value === "string" && value.trim() ? value.trim() : null; }
 function numberValue(value: string | undefined, fallback: number): number { const parsed = Number(value); return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback; }
-function positiveNumber(value: string | undefined, fallback: number): number { const parsed = Number(value); return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback; }
 function safeDate(value: string, fallback: Date): Date { const date = new Date(value); return Number.isNaN(date.valueOf()) ? fallback : date; }
 function freshnessScore(value: string, now: Date): number { const age = Math.max(0, now.getTime() - safeDate(value, now).getTime()); return Math.max(1, Math.round(100 - age / 144_000)); }
 function sig(value: number, explanation: string) { return { value: Math.max(0, Math.min(1, value)), explanation }; }
