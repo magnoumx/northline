@@ -1556,9 +1556,14 @@ function mapWriteFailure(
   if (error instanceof EditorialWriteError) return error;
   const message = error instanceof Error ? error.message : "";
   if (/UNIQUE|FOREIGN KEY|CONSTRAINT|current version/iu.test(message)) {
+    // Keep which constraint fired. "Conflicted with current storage state"
+    // alone hid 52 failed autonomous runs in two weeks behind one sentence.
+    // SQLite constraint text names tables and columns, never row values.
+    const constraint = message.replace(/^D1_ERROR:\s*/u, "").slice(0, 200);
+    console.warn("editorial_write_constraint", { constraint });
     return new EditorialWriteError(
       "VERSION_CONFLICT",
-      "The editorial write conflicted with current storage state.",
+      `The editorial write conflicted with current storage state (${constraint}).`,
     );
   }
   return new EditorialWriteError(

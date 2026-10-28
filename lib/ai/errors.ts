@@ -26,6 +26,13 @@ export class AiRuntimeError extends Error {
    * against the same exhausted quota.
    */
   retryAfterMs?: number;
+  /** The adapter that raised the error, so a cooldown names who to wait for. */
+  provider?: string;
+  /**
+   * For rate limits: "daily" when the provider says a per-day quota is spent.
+   * Waiting an hour and asking again cannot succeed until the quota resets.
+   */
+  quotaScope?: "daily" | "short";
 
   constructor(
     readonly code: AiRuntimeErrorCode,

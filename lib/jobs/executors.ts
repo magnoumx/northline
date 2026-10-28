@@ -767,6 +767,7 @@ async function recordAiProviderCooldown(
   db: D1Database,
   environment: Record<string, string | undefined>,
   detail: Record<string, unknown> = {},
+  error?: AiRuntimeError,
 ): Promise<void> {
   const minutes = boundedInteger(
     environment.AI_RATE_LIMIT_COOLDOWN_MINUTES,
@@ -774,10 +775,40 @@ async function recordAiProviderCooldown(
     1_440,
     60,
   );
+  const now = Date.now();
+  // A spent daily quota stays spent until it resets. Retrying every hour burned
+  // two trends an hour, all day, from 2026-10-22 on (about 45 failed runs/day).
+  const cooldownUntil =
+    error?.quotaScope === "daily"
+      ? nextDailyQuotaResetMs(now)
+      : now + minutes * 60_000;
   await recordJobDiagnostic(db, "ai.provider", "rate_limited", {
     ...detail,
-    cooldownUntil: Date.now() + minutes * 60_000,
+    provider: error?.provider ?? null,
+    quotaScope: error?.quotaScope ?? null,
+    cooldownUntil,
   });
+}
+
+/**
+ * Next midnight in America/Los_Angeles, when Gemini's per-day quotas reset.
+ * Bounded to 24 h so a clock or timezone surprise can never park the newsroom.
+ */
+export function nextDailyQuotaResetMs(now: number): number {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Los_Angeles",
+    hourCycle: "h23",
+    hour: "numeric",
+    minute: "numeric",
+    second: "numeric",
+  }).formatToParts(new Date(now));
+  const part = (type: string) =>
+    Number(parts.find((item) => item.type === type)?.value ?? 0);
+  const elapsedMs =
+    ((part("hour") * 60 + part("minute")) * 60 + part("second")) * 1_000;
+  const untilMidnight = 24 * 60 * 60 * 1_000 - elapsedMs;
+  // Five minutes past the reset, so the first retry does not race it.
+  return now + Math.min(Math.max(untilMidnight, 0) + 5 * 60_000, 24 * 60 * 60 * 1_000);
 }
 
 /**
@@ -1223,7 +1254,12 @@ export async function executeAutonomousArticleGenerate(
       )
       .run();
     if (errorCode === "AI_PROVIDER_RATE_LIMITED") {
-      await recordAiProviderCooldown(db, environment, { runId, trendId });
+      await recordAiProviderCooldown(
+        db,
+        environment,
+        { runId, trendId },
+        error instanceof AiRuntimeError ? error : undefined,
+      );
     }
     if (isNonRetryableAutonomousError(error)) return;
     throw error;
@@ -1649,7 +1685,9 @@ async function backfillArticleVideos(
   // Without the cooldown this takes the newest few every run, finds nothing for
   // them, and takes the same few again fifteen minutes later - so the rest of
   // the archive is never reached at all. An article that yielded no footage is
-  // set aside for a day and the pass moves on through the backlog.
+  // set aside for a day and the pass moves on through the backlog. So is one
+  // that failed: retrying the same failure every fifteen minutes left 4,270
+  // versions on a single article.
   const retryAfter = Date.now() - 24 * 60 * 60 * 1000;
   // The cooldown set is read once through audit_logs_target_idx and applied
   // here. A correlated LIKE '%id%' against audit_logs scanned the whole table
@@ -1662,7 +1700,7 @@ async function backfillArticleVideos(
          AND target_id = 'archive.media_backfill'
          AND occurred_at > ?1
          AND action = 'JOB_DIAGNOSTIC'
-         AND decision = 'video_none_found'
+         AND decision IN ('video_none_found', 'video_failed')
        LIMIT 2000`,
     )
     .bind(retryAfter)

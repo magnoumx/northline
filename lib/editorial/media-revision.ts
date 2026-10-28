@@ -198,121 +198,127 @@ export async function createMediaOnlyRevision(
     )
     .run();
 
-  // The previous version's evidence is carried forward first. Both tables are
-  // keyed by article_version_id, so a version that starts empty has none of
-  // its predecessor's sources or media no matter how well-sourced the article
-  // actually is - every article this function ever revised went live on a
-  // fresh version whose article_source_links was empty, publicly showing
-  // "Verified" over a citation list of zero. Nothing here removes evidence;
-  // it is additive by construction, matching what a presentation-only
-  // revision is supposed to be.
-  await db
-    .prepare(
-      `INSERT OR IGNORE INTO article_source_links (
-         id, article_version_id, source_id, relationship, summary,
-         source_url, source_title, citation_order, created_at
-       )
-       SELECT lower(hex(randomblob(16))), ?2, source_id, relationship, summary,
-         source_url, source_title, citation_order, ?3
-       FROM article_source_links
-       WHERE article_version_id = ?1`,
-    )
-    .bind(current.id, newVersionId, nowMs)
-    .run();
-  await db
-    .prepare(
-      `INSERT OR IGNORE INTO article_media (
-         article_version_id, media_asset_id, role, position, alt_text,
-         caption, created_at
-       )
-       SELECT ?2, media_asset_id, role, position, alt_text, caption, ?3
-       FROM article_media
-       WHERE article_version_id = ?1`,
-    )
-    .bind(current.id, newVersionId, nowMs)
-    .run();
-
-  for (const item of input.media) {
+  // From here until the version is frozen, any failure must remove the draft
+  // and the evidence copied into it. Leaving it behind leaked 22,807 drafts
+  // (~287 MB plus 123k link rows) by 2026-10-28.
+  let discovered: number;
+  try {
+    // The previous version's evidence is carried forward first. Both tables are
+    // keyed by article_version_id, so a version that starts empty has none of
+    // its predecessor's sources or media no matter how well-sourced the article
+    // actually is - every article this function ever revised went live on a
+    // fresh version whose article_source_links was empty, publicly showing
+    // "Verified" over a citation list of zero. Nothing here removes evidence;
+    // it is additive by construction, matching what a presentation-only
+    // revision is supposed to be.
+    await db
+      .prepare(
+        `INSERT OR IGNORE INTO article_source_links (
+           id, article_version_id, source_id, relationship, summary,
+           source_url, source_title, citation_order, created_at
+         )
+         SELECT lower(hex(randomblob(16))), ?2, source_id, relationship, summary,
+           source_url, source_title, citation_order, ?3
+         FROM article_source_links
+         WHERE article_version_id = ?1`,
+      )
+      .bind(current.id, newVersionId, nowMs)
+      .run();
     await db
       .prepare(
         `INSERT OR IGNORE INTO article_media (
            article_version_id, media_asset_id, role, position, alt_text,
            caption, created_at
-         ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`,
+         )
+         SELECT ?2, media_asset_id, role, position, alt_text, caption, ?3
+         FROM article_media
+         WHERE article_version_id = ?1`,
       )
-      .bind(
-        newVersionId,
-        item.mediaAssetId,
-        item.role,
-        item.position,
-        item.altText,
-        item.caption,
-        nowMs,
-      )
+      .bind(current.id, newVersionId, nowMs)
       .run();
-  }
 
-  for (const source of input.sources) {
-    await db
+    for (const item of input.media) {
+      await db
+        .prepare(
+          `INSERT OR IGNORE INTO article_media (
+             article_version_id, media_asset_id, role, position, alt_text,
+             caption, created_at
+           ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`,
+        )
+        .bind(
+          newVersionId,
+          item.mediaAssetId,
+          item.role,
+          item.position,
+          item.altText,
+          item.caption,
+          nowMs,
+        )
+        .run();
+    }
+
+    for (const source of input.sources) {
+      await db
+        .prepare(
+          `INSERT OR IGNORE INTO article_source_links (
+             article_version_id, source_id, relationship, citation_order,
+             source_url, source_title, note, created_at
+           ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`,
+        )
+        .bind(
+          newVersionId,
+          source.sourceId,
+          source.relationship,
+          source.citationOrder,
+          source.sourceUrl,
+          source.sourceTitle,
+          source.note,
+          nowMs,
+        )
+        .run();
+    }
+
+    discovered = input.attachToDraft
+      ? await input.attachToDraft(newVersionId)
+      : 0;
+    if (
+      input.media.length === 0 &&
+      input.sources.length === 0 &&
+      discovered === 0
+    ) {
+      // Discovery found nothing rights-clean. Publishing an identical version
+      // with nothing new attached would churn the archive for no reader benefit.
+      throw new MediaRevisionError(
+        "NOTHING_TO_ATTACH",
+        "No licensed media or citation was found for this article.",
+      );
+    }
+
+    // Prove the reader-facing text survived the copy before anything is frozen or
+    // promoted. A mismatch here means this stopped being presentation-only.
+    const copied = await db
       .prepare(
-        `INSERT OR IGNORE INTO article_source_links (
-           article_version_id, source_id, relationship, citation_order,
-           source_url, source_title, note, created_at
-         ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`,
+        `SELECT headline, subheadline AS subheadline, body_json AS bodyJson,
+           key_takeaways_json AS keyTakeawaysJson
+         FROM article_versions WHERE id = ?1 LIMIT 1`,
       )
-      .bind(
-        newVersionId,
-        source.sourceId,
-        source.relationship,
-        source.citationOrder,
-        source.sourceUrl,
-        source.sourceTitle,
-        source.note,
-        nowMs,
-      )
-      .run();
-  }
-
-  const discovered = input.attachToDraft
-    ? await input.attachToDraft(newVersionId)
-    : 0;
-  if (
-    input.media.length === 0 &&
-    input.sources.length === 0 &&
-    discovered === 0
-  ) {
-    // Discovery found nothing rights-clean. Publishing an identical version
-    // with nothing new attached would churn the archive for no reader benefit.
-    await db
-      .prepare(`DELETE FROM article_versions WHERE id = ?1`)
       .bind(newVersionId)
-      .run();
-    throw new MediaRevisionError(
-      "NOTHING_TO_ATTACH",
-      "No licensed media or citation was found for this article.",
-    );
-  }
-
-  // Prove the reader-facing text survived the copy before anything is frozen or
-  // promoted. A mismatch here means this stopped being presentation-only.
-  const copied = await db
-    .prepare(
-      `SELECT headline, subheadline AS subheadline, body_json AS bodyJson,
-         key_takeaways_json AS keyTakeawaysJson
-       FROM article_versions WHERE id = ?1 LIMIT 1`,
-    )
-    .bind(newVersionId)
-    .first<Pick<VersionRow, "headline" | "subheadline" | "bodyJson" | "keyTakeawaysJson">>();
-  const copiedHash = copied ? await hash(readerTextOf(copied)) : "";
-  if (copiedHash !== bodyHash) {
-    await db
-      .prepare(`DELETE FROM article_versions WHERE id = ?1`)
-      .bind(newVersionId)
-      .run();
-    throw new MediaRevisionError(
-      "TEXT_CHANGED",
-      "The copied version does not carry the published text unchanged.",
-    );
+      .first<Pick<VersionRow, "headline" | "subheadline" | "bodyJson" | "keyTakeawaysJson">>();
+    const copiedHash = copied ? await hash(readerTextOf(copied)) : "";
+    if (copiedHash !== bodyHash) {
+      throw new MediaRevisionError(
+        "TEXT_CHANGED",
+        "The copied version does not carry the published text unchanged.",
+      );
+    }
+  } catch (error) {
+    await discardDraftVersion(db, newVersionId).catch((cleanupError) => {
+      console.warn("media_revision_draft_cleanup_failed", {
+        versionId: newVersionId,
+        error: cleanupError instanceof Error ? cleanupError.message.slice(0, 200) : "unknown",
+      });
+    });
+    throw error;
   }
 
   // Freeze, then promote. `articles_public_update_requires_frozen_version`
@@ -339,4 +345,24 @@ export async function createMediaOnlyRevision(
     mediaAttached: input.media.length + discovered,
     sourcesAttached: input.sources.length,
   };
+}
+
+/**
+ * Removes an unfrozen draft version and everything copied into it, in one
+ * batch. article_source_links, article_media and claims reference the version
+ * with ON DELETE RESTRICT, so deleting the version alone fails with "FOREIGN
+ * KEY constraint failed" once evidence has been carried forward. Published
+ * versions are never touched: the WHERE clauses require published_at IS NULL.
+ */
+export async function discardDraftVersion(
+  db: D1Database,
+  versionId: string,
+): Promise<void> {
+  const unfrozen = `SELECT id FROM article_versions WHERE id = ?1 AND published_at IS NULL`;
+  await db.batch([
+    db.prepare(`DELETE FROM article_media WHERE article_version_id IN (${unfrozen})`).bind(versionId),
+    db.prepare(`DELETE FROM article_source_links WHERE article_version_id IN (${unfrozen})`).bind(versionId),
+    db.prepare(`DELETE FROM claims WHERE article_version_id IN (${unfrozen})`).bind(versionId),
+    db.prepare(`DELETE FROM article_versions WHERE id = ?1 AND published_at IS NULL`).bind(versionId),
+  ]);
 }

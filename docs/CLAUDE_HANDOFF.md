@@ -28,7 +28,8 @@ Short, verified context for the next session. Canonical detail lives in the docs
 - Keep: migrations, `wrangler.jsonc` bindings, redirects (`content_redirects`), feeds, audit logs, policies, tests.
 
 ## Current state (verified 2026-10-29)
-- Production runs version `49a31276` = `main` + branch `fix/d1-backfill-cooldown-scan` (`5861c52`). **That fix is not on GitHub `main` yet** (push not done).
+- Production runs version `49a31276` (deployed 2026-10-28 22:12 UTC), built from `5861c52`. That commit is on `main` since PR #1 (`5c30d92`); `main` `7a235d0` adds only the Phase 1 cleanup (PR #2), so `main` and production match in behavior. (Updated 2026-10-29; an earlier version of this line said the fix was not on `main`.)
+- Sprint 0 (`fix/sprint0-publishing-reliability`, not deployed): see `docs/NORTHLINE_V2_MASTER_PLAN.md`.
 - **No article published since 2026-10-14 23:31 UTC.** Last 14 days of `autonomous_story_runs`: 609 FAILED (345 `AI_PROVIDER_RATE_LIMITED`, ~170 `AUTONOMOUS_TOPIC_NOT_REPORTABLE` with 0 primary sources, 52 "editorial write conflicted", 21 provider unavailable), 88 REVIEW_REQUIRED, 1 COMPLETED. 14 articles wait in HUMAN_REVIEW_REQUIRED; 7 are APPROVED but never published (since 2026-09-14).
 - Video backfill fails on every article with `FOREIGN KEY constraint failed` in `createMediaOnlyRevision` (573 times in 2 days before the fix, unchanged after). The cooldown only covers `video_none_found`, so it retries the same 3 newest articles every 15 min.
 - Cloudflare plan: Workers Paid is required (DB 944 MB > 500 MB free limit; trends query ~67 M reads/day > 5 M free).

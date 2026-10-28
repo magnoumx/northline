@@ -57,10 +57,17 @@ describe("video backfill runs as its own pass", () => {
     // ORDER BY published_at DESC LIMIT n alone took the same three articles
     // every run, so the other eighteen were never reached.
     const pass = flat.slice(flat.indexOf("async function backfillArticleVideos"));
-    expect(pass).toContain("decision = 'video_none_found'");
+    expect(pass).toContain("decision IN ('video_none_found', 'video_failed')");
     expect(pass).toContain("occurred_at > ?1");
     expect(pass).toContain("24 * 60 * 60 * 1000");
     expect(pass).toContain("!skip.has(article.articleId)");
+  });
+
+  it("sets a failing article aside too, instead of retrying it every run", () => {
+    // Cooling down only on "nothing found" retried each FK failure every
+    // fifteen minutes: one article reached 4,270 leaked draft versions.
+    const pass = flat.slice(flat.indexOf("async function backfillArticleVideos"));
+    expect(pass).toContain("'video_failed')");
   });
 
   it("reads the cooldown through the target index, never a per-article LIKE", () => {

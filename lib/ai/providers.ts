@@ -90,13 +90,16 @@ abstract class HttpAiProviderAdapter implements AiProviderAdapter {
           );
         }
         if (!response.ok) {
+          const detail = await redactedProviderErrorDetail(response);
           console.warn("ai_provider_http_error", {
             provider: this.id,
             model: this.model,
             status: response.status,
-            detail: await redactedProviderErrorDetail(response),
+            detail,
           });
-          throw providerHttpError(response.status, response.headers);
+          const httpError = providerHttpError(response.status, response.headers, detail);
+          httpError.provider = this.id;
+          throw httpError;
         }
         let payload: unknown;
         try {
@@ -308,7 +311,8 @@ export class AnthropicProviderAdapter extends HttpAiProviderAdapter {
             status: response.status,
             detail,
           });
-          const httpError = providerHttpError(response.status, response.headers);
+          const httpError = providerHttpError(response.status, response.headers, detail);
+          httpError.provider = this.id;
           if (detail) httpError.message = `${httpError.message} Provider said: ${detail}`;
           throw httpError;
         }
@@ -834,9 +838,20 @@ function parseRetryAfterMs(header: string | null): number | undefined {
   return Math.min(milliseconds, 30_000);
 }
 
-function providerHttpError(
+/**
+ * Gemini names the exhausted quota (`...PerDay...`) in the 429 body; other
+ * providers say "daily" or "per day". A daily quota cannot recover within the
+ * request or within an hour, so it is reported as such instead of being
+ * retried against the same spent allowance all day.
+ */
+export function rateLimitQuotaScope(detail: string | undefined): "daily" | "short" {
+  return detail && /PerDay|per[\s_-]?day|daily/iu.test(detail) ? "daily" : "short";
+}
+
+export function providerHttpError(
   status: number,
   headers?: Headers,
+  detail?: string,
 ): AiRuntimeError {
   if (status === 408 || status === 504) {
     return new AiRuntimeError(
@@ -845,11 +860,15 @@ function providerHttpError(
     );
   }
   if (status === 429) {
+    const quotaScope = rateLimitQuotaScope(detail);
     const rateLimited = new AiRuntimeError(
       "AI_PROVIDER_RATE_LIMITED",
-      "The AI provider rate-limited the request.",
-      true,
+      quotaScope === "daily"
+        ? "The AI provider's daily quota is exhausted."
+        : "The AI provider rate-limited the request.",
+      quotaScope !== "daily",
     );
+    rateLimited.quotaScope = quotaScope;
     rateLimited.retryAfterMs = parseRetryAfterMs(
       headers?.get("retry-after") ?? null,
     );
