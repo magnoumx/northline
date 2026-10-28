@@ -792,10 +792,13 @@ async function readAiProviderCooldownUntil(
     .prepare(
       `SELECT metadata_json AS metadataJson
        FROM audit_logs
-       WHERE action='JOB_DIAGNOSTIC' AND target_id='ai.provider'
-         AND decision='rate_limited'
+       WHERE target_type='JOB' AND target_id='ai.provider'
+         AND occurred_at > ?1
+         AND action='JOB_DIAGNOSTIC' AND decision='rate_limited'
        ORDER BY occurred_at DESC LIMIT 1`,
     )
+    // Indexed and bounded: a cooldown older than a day has long expired.
+    .bind(Date.now() - 24 * 60 * 60 * 1000)
     .first<{ metadataJson: string | null }>();
   if (!row?.metadataJson) return null;
   try {
@@ -1648,7 +1651,33 @@ async function backfillArticleVideos(
   // the archive is never reached at all. An article that yielded no footage is
   // set aside for a day and the pass moves on through the backlog.
   const retryAfter = Date.now() - 24 * 60 * 60 * 1000;
-  const candidates = await db
+  // The cooldown set is read once through audit_logs_target_idx and applied
+  // here. A correlated LIKE '%id%' against audit_logs scanned the whole table
+  // once per article on every run - tens of billions of D1 rows a month.
+  const coolingDown = await db
+    .prepare(
+      `SELECT metadata_json AS metadataJson
+       FROM audit_logs
+       WHERE target_type = 'JOB'
+         AND target_id = 'archive.media_backfill'
+         AND occurred_at > ?1
+         AND action = 'JOB_DIAGNOSTIC'
+         AND decision = 'video_none_found'
+       LIMIT 2000`,
+    )
+    .bind(retryAfter)
+    .all<{ metadataJson: string | null }>();
+  const skip = new Set<string>();
+  for (const row of coolingDown.results) {
+    try {
+      const id = (JSON.parse(row.metadataJson ?? "{}") as { articleId?: unknown })
+        .articleId;
+      if (typeof id === "string") skip.add(id);
+    } catch {
+      // A malformed diagnostic only means that article is not held back.
+    }
+  }
+  const scanned = await db
     .prepare(
       `SELECT a.id AS articleId, a.current_version_id AS versionId,
          v.headline AS headline
@@ -1657,19 +1686,16 @@ async function backfillArticleVideos(
        WHERE a.state IN ('PUBLISHED','UPDATED','CORRECTED','DEVELOPING')
          AND (v.structured_data_json IS NULL
               OR v.structured_data_json NOT LIKE '%videoEmbedUrl%')
-         AND NOT EXISTS (
-           SELECT 1 FROM audit_logs al
-           WHERE al.action = 'JOB_DIAGNOSTIC'
-             AND al.target_id = 'archive.media_backfill'
-             AND al.decision = 'video_none_found'
-             AND al.occurred_at > ?2
-             AND al.metadata_json LIKE '%' || a.id || '%'
-         )
        ORDER BY a.published_at DESC
        LIMIT ?1`,
     )
-    .bind(limit, retryAfter)
+    .bind(limit + skip.size)
     .all<{ articleId: string; versionId: string; headline: string }>();
+  const candidates = {
+    results: scanned.results
+      .filter((article) => !skip.has(article.articleId))
+      .slice(0, limit),
+  };
 
   await recordJobDiagnostic(db, "archive.media_backfill", "video_selected", {
     articles: candidates.results.length,

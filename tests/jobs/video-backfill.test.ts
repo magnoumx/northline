@@ -57,9 +57,23 @@ describe("video backfill runs as its own pass", () => {
     // ORDER BY published_at DESC LIMIT n alone took the same three articles
     // every run, so the other eighteen were never reached.
     const pass = flat.slice(flat.indexOf("async function backfillArticleVideos"));
-    expect(pass).toContain("al.decision = 'video_none_found'");
-    expect(pass).toContain("al.occurred_at > ?2");
+    expect(pass).toContain("decision = 'video_none_found'");
+    expect(pass).toContain("occurred_at > ?1");
     expect(pass).toContain("24 * 60 * 60 * 1000");
+    expect(pass).toContain("!skip.has(article.articleId)");
+  });
+
+  it("reads the cooldown through the target index, never a per-article LIKE", () => {
+    // The correlated metadata_json LIKE '%' || a.id || '%' scanned all of
+    // audit_logs once per article every fifteen minutes: 69 billion D1 rows
+    // in a month, the October 2026 invoice.
+    const pass = flat.slice(
+      flat.indexOf("async function backfillArticleVideos"),
+      flat.indexOf("export async function executeArchiveMediaBackfill"),
+    );
+    expect(pass).not.toContain("LIKE '%' || a.id");
+    expect(pass).toContain("target_type = 'JOB'");
+    expect(pass).toContain("target_id = 'archive.media_backfill'");
   });
 
   it("keeps one article's failure from stopping the batch", () => {
