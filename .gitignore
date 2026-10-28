@@ -67,3 +67,9 @@ outputs/*.secret.*
 
 # committed placeholder template
 !.dev.vars.example
+
+# Local release bundles and scratch output (seen in local copies)
+*.zip
+*.bak
+/tmp-sql/
+/tmp/

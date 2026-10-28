@@ -10,7 +10,6 @@ import {
   PersonalPage,
   PolicyPage,
   SearchPage,
-  StandardArticlePage,
   StoryIntelligencePage,
   TopicPage,
   TrendingPage,

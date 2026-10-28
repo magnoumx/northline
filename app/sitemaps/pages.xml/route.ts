@@ -34,7 +34,6 @@ export async function GET(request: Request) {
   // disappeared from discovery as the archive grew.
   const stories = await listPublishedStoryIndex();
   const indexing = await isSearchIndexingEnabled();
-  const staticLastModified = stories[0]?.updatedAtIso?.slice(0, 10);
   // Topic pages are linked from every article breadcrumb and are the archive's
   // main crawl path between stories, but they were absent from discovery, so
   // search engines only ever reached them by following a story.

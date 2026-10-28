@@ -703,7 +703,6 @@ export async function runAutonomousNewsroomStory(
     return finding?.disposition !== "supported";
   }).length;
   const central = claims.find((claim) => claim.importance === "central") ?? claims[0];
-  const centralFinding = findings.find((finding) => finding.claimId === central?.id);
   const independentReview = reviewProvider !== research.metadata.provider;
   const suppliedEvidenceGroundedReview =
     evidencePacket.length >= 3 &&
