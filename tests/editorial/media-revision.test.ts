@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   createMediaOnlyRevision,
+  discardDraftVersion,
   MediaRevisionError,
   readerTextOf,
 } from "../../lib/editorial/media-revision";
@@ -40,7 +41,7 @@ function fakeDb(options: { corruptCopy?: boolean } = {}) {
           if (sql.includes("FROM article_versions v")) {
             return versions.get(String(record.bindings[0])) as T ?? null;
           }
-          if (sql.includes("key_takeaways_json AS keyTakeawaysJson\n       FROM article_versions")) {
+          if (/key_takeaways_json AS keyTakeawaysJson\s+FROM article_versions/u.test(sql)) {
             const row = versions.get(String(record.bindings[0]));
             if (!row) return null;
             return (
@@ -67,6 +68,11 @@ function fakeDb(options: { corruptCopy?: boolean } = {}) {
           return { meta: { changes: 1 } };
         },
       };
+    },
+    async batch(prepared: { run(): Promise<unknown> }[]) {
+      const results = [];
+      for (const statement of prepared) results.push(await statement.run());
+      return results;
     },
     statements,
     versions,
@@ -185,7 +191,7 @@ describe("media-only revision", () => {
 
     expect(
       db.statements.some((statement) =>
-        statement.sql.startsWith("DELETE FROM article_versions"),
+        statement.sql.startsWith("DELETE FROM article_versions WHERE id = ?1 AND published_at IS NULL"),
       ),
     ).toBe(true);
   });
@@ -198,7 +204,7 @@ describe("media-only revision", () => {
 
     expect(
       db.statements.some((statement) =>
-        statement.sql.startsWith("DELETE FROM article_versions"),
+        statement.sql.startsWith("DELETE FROM article_versions WHERE id = ?1 AND published_at IS NULL"),
       ),
     ).toBe(true);
   });
@@ -268,6 +274,79 @@ describe("media-only revision", () => {
       expect(mediaCopied).toBeGreaterThan(versionCreated);
       expect(frozen).toBeGreaterThan(sourcesCopied);
       expect(frozen).toBeGreaterThan(mediaCopied);
+    });
+  });
+
+  describe("never leaks an unfrozen draft", () => {
+    // 22,807 drafts leaked in production: the old cleanup deleted the version
+    // while article_media / article_source_links still pointed at it, and the
+    // RESTRICT foreign keys refused the DELETE.
+
+    it("deletes the draft's children before the draft itself", async () => {
+      const db = fakeDb();
+      await expect(
+        createMediaOnlyRevision(
+          db,
+          { ...input, media: [], sources: [], attachToDraft: async () => 0 },
+          hash,
+        ),
+      ).rejects.toMatchObject({ code: "NOTHING_TO_ATTACH" });
+
+      const order = db.statements.map((statement) => statement.sql);
+      const version = order.findIndex((sql) => sql.startsWith("DELETE FROM article_versions"));
+      for (const child of ["article_media", "article_source_links", "claims"]) {
+        const index = order.findIndex((sql) => sql.startsWith(`DELETE FROM ${child} `));
+        expect(index, child).toBeGreaterThan(-1);
+        expect(index, child).toBeLessThan(version);
+      }
+    });
+
+    it("discards the draft when discovery itself throws", async () => {
+      const db = fakeDb();
+      await expect(
+        createMediaOnlyRevision(
+          db,
+          {
+            ...input,
+            media: [],
+            sources: [],
+            attachToDraft: async () => {
+              throw new Error("video lookup failed");
+            },
+          },
+          hash,
+        ),
+      ).rejects.toThrow("video lookup failed");
+
+      expect(
+        db.statements.some((statement) =>
+          statement.sql.startsWith("DELETE FROM article_versions WHERE id = ?1 AND published_at IS NULL"),
+        ),
+      ).toBe(true);
+    });
+
+    it("keeps the original error when cleanup also fails", async () => {
+      const db = fakeDb();
+      (db as unknown as { batch: () => Promise<never> }).batch = async () => {
+        throw new Error("D1 unavailable");
+      };
+      await expect(
+        createMediaOnlyRevision(
+          db,
+          { ...input, media: [], sources: [], attachToDraft: async () => 0 },
+          hash,
+        ),
+      ).rejects.toMatchObject({ code: "NOTHING_TO_ATTACH" });
+    });
+
+    it("only ever deletes a version that was never published", async () => {
+      const db = fakeDb();
+      await discardDraftVersion(db, "version_abc_2");
+      expect(db.statements).toHaveLength(4);
+      for (const statement of db.statements) {
+        expect(statement.sql).toContain("published_at IS NULL");
+        expect(statement.bindings).toEqual(["version_abc_2"]);
+      }
     });
   });
 });
