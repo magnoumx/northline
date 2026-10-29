@@ -10,7 +10,11 @@ import {
 import { selectEditorialVideo } from "../media/video-verification";
 import { discoverOfficialVideos } from "../media/youtube-discovery";
 import { sha256Base64Url } from "../security/crypto";
-import { isPolicyPrimaryDomain, resolveSourceAuthority } from "./source-authority";
+import {
+  isPolicyPrimaryDomain,
+  resolveDiscoveryLeads,
+  resolveSourceAuthority,
+} from "./source-authority";
 import { measureFinalBodyIntegrity } from "./final-body-integrity";
 import { detectEventRecency } from "./event-recency";
 import { deriveTopics } from "./topic-derivation";
@@ -134,6 +138,12 @@ export async function runAutonomousNewsroomStory(
       : heuristicCategory;
   const workflowId = `autonomous_${input.trendId}_${Date.now()}`;
   const selectedRegistry = selectSources(registry, category, input.headline, 24);
+  const registryAuthority = registry.map((entry) => ({
+    domain: entry.domain,
+    sourceType: entry.sourceType,
+    credibilityTier: entry.credibilityTier,
+    isPrimary: entry.isPrimary === 1,
+  }));
 
   // Live source discovery runs on the paid provider that has real web search.
   // Gemini writes from current reporting instead of training memory, which is
@@ -171,7 +181,14 @@ export async function runAutonomousNewsroomStory(
         },
       });
 
-      liveSourceLeads = discovery.data;
+      // Counted, and handed to research, with the kinds the publication gate
+      // will assign - not the ones the model chose for its own leads.
+      const leads = resolveDiscoveryLeads(
+        discovery.data.sources,
+        registryAuthority,
+        input.headline,
+      );
+      liveSourceLeads = { ...discovery.data, sources: leads };
       discoveryProvider = discovery.metadata.provider;
       discoveryCost = discovery.metadata.costUsd;
 
@@ -180,7 +197,6 @@ export async function runAutonomousNewsroomStory(
       // search finds no primary reporting, the story is abandoned here instead
       // of spending the drafting budget on something the publication gate will
       // reject for an unverifiable central claim.
-      const leads = discovery.data.sources;
       const primaryLeads = leads.filter(
         (lead) => lead.sourceKind === "PRIMARY",
       ).length;
@@ -281,12 +297,6 @@ export async function runAutonomousNewsroomStory(
   // classification only survives when operator policy or the source registry
   // agrees. This stops a fabricated `domain` field from borrowing a trusted
   // publisher's identity to satisfy the publication gate.
-  const registryAuthority = registry.map((entry) => ({
-    domain: entry.domain,
-    sourceType: entry.sourceType,
-    credibilityTier: entry.credibilityTier,
-    isPrimary: entry.isPrimary === 1,
-  }));
   const sources = deduplicateSources(
     (research.data.sources as GeneratedSource[]).flatMap((source) => {
       const authority = resolveSourceAuthority(
