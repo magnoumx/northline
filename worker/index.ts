@@ -15,6 +15,13 @@ import { isKnownNewsroomCron, schedulesForCron } from "../lib/jobs/cron-routing"
 import { createDefaultJobRegistry } from "../lib/jobs/handlers";
 import { dispatchQueueMessage } from "../lib/jobs/consumer";
 import { createMonitoringReporter } from "../lib/monitoring/reporter";
+import { getBrandConfig } from "../lib/brand/config";
+import {
+  httpsRedirectTarget,
+  isRetractedPublication,
+  retractedStoryResponse,
+  storySlugFromPath,
+} from "../lib/site/retraction-response";
 import {
   INTERNAL_ACCESS_JWT_COOKIE,
   INTERNAL_ACCESS_JWT_HEADER,
@@ -329,6 +336,16 @@ const worker = {
     );
     const url = new URL(securedRequest.url);
 
+    // http://usnorthline.com answered 200 with the full site, so every page
+    // existed at two addresses. HSTS does not help a first visit or a crawler
+    // following an http link; only a redirect does.
+    {
+      const secureTarget = httpsRedirectTarget(url, "usnorthline.com");
+      if (secureTarget) {
+        return withSecurityHeaders(Response.redirect(secureTarget, 301), cspOptions);
+      }
+    }
+
     if (url.hostname.toLowerCase() === "www.usnorthline.com") {
       url.hostname = "usnorthline.com";
       return withSecurityHeaders(
@@ -452,6 +469,34 @@ const worker = {
         cspOptions,
       );
     }
+    // A retracted story answers 410 with a notice instead of the generic 404.
+    // Looked up only after the app has already said 404, through the unique
+    // slug index, so ordinary page views cost nothing extra.
+    if (
+      response.status === 404 &&
+      (request.method === "GET" || request.method === "HEAD") &&
+      bindings.DB
+    ) {
+      const slug = storySlugFromPath(url.pathname);
+      if (slug) {
+        try {
+          const row = await bindings.DB.prepare(
+            `SELECT state, published_at AS publishedAt FROM articles WHERE slug = ?1 LIMIT 1`,
+          )
+            .bind(slug)
+            .first<{ state: string; publishedAt: number | null }>();
+          if (isRetractedPublication(row)) {
+            return withSecurityHeaders(
+              retractedStoryResponse(getBrandConfig().shortName),
+              cspOptions,
+            );
+          }
+        } catch {
+          // The 404 stands if the lookup fails.
+        }
+      }
+    }
+
     if (
       url.pathname.startsWith("/newsroom") ||
       url.pathname.startsWith("/api/") ||
