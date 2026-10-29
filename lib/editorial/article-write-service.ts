@@ -1290,6 +1290,25 @@ function conditionalPublicRevisionInsert(
     );
 }
 
+/**
+ * One link per source per version: article_source_links is unique on
+ * (article_version_id, source_id). Two leads from the same outlet map to the
+ * same source, and the duplicate failed the whole atomic write ("UNIQUE
+ * constraint failed: article_source_links..."), losing a finished draft.
+ * The first occurrence keeps its citation order. Evidence references the
+ * source id, not the link row, so nothing points at the dropped duplicate.
+ */
+export function uniqueSourceLinks<T extends { sourceId: string }>(
+  sources: readonly T[],
+): T[] {
+  const seen = new Set<string>();
+  return sources.filter((source) => {
+    if (seen.has(source.sourceId)) return false;
+    seen.add(source.sourceId);
+    return true;
+  });
+}
+
 function versionPacketStatements(
   db: D1Database,
   versionId: string,
@@ -1298,7 +1317,7 @@ function versionPacketStatements(
   now: number,
 ): D1PreparedStatement[] {
   const statements: D1PreparedStatement[] = [];
-  input.sources.forEach((source, index) => {
+  uniqueSourceLinks(input.sources).forEach((source, index) => {
     statements.push(
       db
         .prepare(
