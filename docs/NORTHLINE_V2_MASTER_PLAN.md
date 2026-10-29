@@ -2,18 +2,18 @@
 
 Canonical plan for the V2 program. One document, updated at the end of every sprint. Facts marked **verified** were checked in code or against production (read-only) on the date given; everything else is a plan or an assumption and says so.
 
-Last updated: 2026-10-29 (Sprint 0).
+Last updated: 2026-10-29 (Sprint 1, Tracks A-C).
 
 ## Progress tracker
 
 | # | Workstream | Priority | Status | Next sprint |
 |---|---|---|---|---|
-| 01 | Infrastructure / Cloudflare | P0 | Sprint 0 deployed (`1c7122bf`); cleanup awaits approval | 1 |
-| 02 | Trend intelligence | P1 | Not started (cost finding logged) | 2 |
+| 01 | Infrastructure / Cloudflare | P0 | Sprint 0 + cleanup done, `e7a611ac` live (945 MB -> 559 MB) | 1 |
+| 02 | Trend intelligence | P1 | PR #6: measured primary-source provenance + zero-source tracking | 2 |
 | 03 | Research / fact check | P1 | Not started | 2 |
-| 04 | AI publishing engine | P0 | Sprint 0 deployed; quota decision pending (owner) | 1 |
+| 04 | AI publishing engine | P0 | PR #5: write-conflict cause fixed, run spacing, stale recovery, provider logging | 1 |
 | 05 | Newsroom / CMS | P0 | Autopublish diagnosed (policy, not bug); backlog needs editor | 1 |
-| 06 | Technical SEO / indexing | P1 | Baseline only | 2 |
+| 06 | Technical SEO / indexing | P1 | Live audit done; PR #7: http->https, 410 for retractions | 2 |
 | 07 | Content SEO | P2 | Not started | 3 |
 | 08 | UI / UX | P2 | Not started (after publishing is stable) | 3 |
 | 09 | Performance / accessibility | P2 | Baseline only (TTFB ~1.5 s) | 3 |
@@ -204,6 +204,36 @@ Branch `fix/sprint0-publishing-reliability`. Not deployed.
 - **0-source trends:** 177 runs in 14 days ended `TOPIC_NOT_REPORTABLE`. Each spent one web-grounded discovery call (daily quota) first. The trend's own fields cannot predict it: source velocity is the same for good and bad trends (3.3 vs 3.2), and `primary_source_availability` is 0 on every trend (never filled in). No pre-AI gate was added, because it would cut good stories just as often as bad ones. Fix the data first (Sprint 2, workstream 02).
 - **Per-provider cooldown:** deprioritised. The gateway already falls through to the next provider on a rate limit, so a run fails as rate-limited only when every provider in its chain is exhausted. The global cooldown is therefore right unless a chain has one provider, which depends on the secret chain values.
 - Added `tests/jobs/d1-query-guard.test.ts`: fails CI if any runtime file builds a `LIKE '%' || column` pattern (verified to catch a planted example).
+
+## Sprint 1 results: Tracks A-C (2026-10-29)
+
+State reconciled: `main` = `9f57b57`, production = `e7a611ac` (built from it), no open PRs at start. Leaked drafts: 0. Queue jobs: all COMPLETED after the deploy catch-up.
+
+**Track A, publishing reliability ([PR #5](https://github.com/magnoumx/northline/pull/5))**
+- Write conflicts solved: the Sprint 0 diagnostic showed all 3 recent ones were `UNIQUE constraint failed: article_source_links(article_version_id, source_id)`, from two leads by the same outlet. The write service now de-duplicates sources per version.
+- Two story runs started together (queue concurrency 2) and both hit google per-minute 429s. Generate messages are now spaced (`AUTONOMOUS_GENERATE_SPACING_SECONDS`, default 180 s).
+- A dead run stayed RUNNING behind the cooldown. Stale recovery now runs first.
+- Drafting and review providers are now logged per finished run (`article.generate` / `providers`), so fact-review independence becomes measurable.
+- Verified working with no change: provider and quota scope recorded on 429s (`google`, `short`); live-search cost recorded on not-reportable runs ($0.0114).
+- AI chains: every chain is set by a production secret (names verified, values not read), so the code defaults are not evidence. The new provider log will show the real routing after deploy.
+- Real cost: about $0.08 per story that reaches review; spend is negligible. Output is limited by provider quota and source availability, not by cost.
+
+**Track B, trend intelligence ([PR #6](https://github.com/magnoumx/northline/pull/6))**
+- `primary_source_availability` was a literal 0 at ingestion and never updated. Live discovery now writes the measured primary-source count back for both outcomes, with a `trend.discovery` diagnostic as provenance. It is deliberately not a gate yet.
+- `source_velocity` counts re-observations of the same signal, not outlets. Next: a distinct-outlet count from `trend_signal_observations`, benchmarked against the 265 measured runs before it touches selection.
+- Not started: entity clustering, the dashboard and caching (see the next sprint).
+
+**Track C, technical SEO ([PR #7](https://github.com/magnoumx/northline/pull/7))**
+- Fixed: http served the full site with 200 (now 301 to https); 29 retracted stories returned a generic 404 (now 410 with a notice and a corrections link).
+- Verified OK: robots, sitemap index, all 138 live stories in `pages.xml`, canonicals, NewsArticle JSON-LD with honest matching dates, `max-image-preview:large`, trailing-slash 308.
+- Remaining: news sitemap empty (no publishing); `www` has no DNS record (owner); edge caching is not effective for Worker HTML (proposal; the CSP nonce makes it a design decision); author is an Organization only (Track D).
+- Search Console: not queried. The integration needs the production credential secret plus an authenticated newsroom session (Cloudflare Access). Options: the owner opens the newsroom analytics page, or grants the service account and runs the existing route. No numbers are reported until then.
+
+**Next sprint**
+1. Deploy PRs #5-#7 after approval, then smoke-check: http 301, retracted 410, provider log rows, no concurrent 429 pairs.
+2. Track B: distinct-outlet source velocity; entity clustering and duplicate suppression; discovery outcomes on `/newsroom/trends`.
+3. Track D: content audit of the 138 live stories (dates, attribution, duplicates, image rights) and real masthead names (owner).
+4. Track E: design tokens and an article-layout spike behind visual tests, no URL changes.
 
 ## Blockers and access needed (owner)
 
