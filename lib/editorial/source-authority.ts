@@ -276,3 +276,30 @@ export function resolveSourceAuthority(
     downgradeReason,
   };
 }
+
+export type DiscoveryLead = { url: string; sourceKind: SourceKind };
+
+/**
+ * Re-labels live-search leads with the same rule the publication gate applies
+ * to the finished draft.
+ *
+ * Discovery counted the model's own PRIMARY labels, so a gold-price story went
+ * ahead on "3 primary leads" that were kitco.com, bullionvault.com and the
+ * like. The gate re-resolved them as INDEPENDENT, the draft was held for
+ * missing_primary_source, and the drafting spend bought nothing. Leads with an
+ * unusable URL are dropped, as they are from the draft.
+ */
+export function resolveDiscoveryLeads<T extends DiscoveryLead>(
+  leads: readonly T[],
+  registry: readonly SourceRegistryEntry[],
+  subjectText?: string,
+): T[] {
+  return leads.flatMap((lead) => {
+    const authority = resolveSourceAuthority(
+      { url: lead.url, domain: "", sourceKind: lead.sourceKind, sourceType: "news" },
+      registry,
+      subjectText,
+    );
+    return authority ? [{ ...lead, sourceKind: authority.sourceKind }] : [];
+  });
+}
