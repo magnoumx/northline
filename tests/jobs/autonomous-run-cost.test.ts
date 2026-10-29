@@ -17,7 +17,7 @@ describe("cost of a run ruled out by live search", () => {
 
   it("is passed when the topic is ruled out", () => {
     expect(flat("../../lib/editorial/autonomous-newsroom.ts")).toContain(
-      "which is not enough for a verifiable story.`, discoveryCost, );",
+      "which is not enough for a verifiable story.`, discoveryCost,",
     );
   });
 
