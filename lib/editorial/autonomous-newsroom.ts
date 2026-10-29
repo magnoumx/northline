@@ -32,7 +32,11 @@ export type AutonomousEnvironment = Record<string, string | undefined>;
 export class AutonomousTopicNotReportableError extends Error {
   readonly code = "AUTONOMOUS_TOPIC_NOT_REPORTABLE";
 
-  constructor(message: string) {
+  /**
+   * What the live-search call that ruled the topic out cost. Without it these
+   * runs were recorded at $0 although each spent a paid, quota-counted call.
+   */
+  constructor(message: string, readonly costUsd = 0) {
     super(message);
     this.name = "AutonomousTopicNotReportableError";
   }
@@ -179,6 +183,7 @@ export async function runAutonomousNewsroomStory(
         });
         throw new AutonomousTopicNotReportableError(
           `Live search found ${leads.length} sources and ${primaryLeads} primary sources for this term, which is not enough for a verifiable story.`,
+          discoveryCost,
         );
       }
     } catch (error) {

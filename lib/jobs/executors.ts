@@ -1242,7 +1242,8 @@ export async function executeAutonomousArticleGenerate(
     await db
       .prepare(
         `UPDATE autonomous_story_runs SET state='FAILED', error_code=?1,
-         error_message=?2, completed_at=?3, updated_at=?3 WHERE id=?4`,
+         error_message=?2, completed_at=?3, updated_at=?3,
+         cost_micros=MAX(cost_micros, ?5) WHERE id=?4`,
       )
       .bind(
         errorCode,
@@ -1251,6 +1252,9 @@ export async function executeAutonomousArticleGenerate(
           : String(error).slice(0, 500),
         failedAt,
         runId,
+        error instanceof AutonomousTopicNotReportableError
+          ? Math.max(0, Math.round(error.costUsd * 1_000_000))
+          : 0,
       )
       .run();
     if (errorCode === "AI_PROVIDER_RATE_LIMITED") {

@@ -8,11 +8,11 @@ Last updated: 2026-10-29 (Sprint 0).
 
 | # | Workstream | Priority | Status | Next sprint |
 |---|---|---|---|---|
-| 01 | Infrastructure / Cloudflare | P0 | Sprint 0 fixes in PR, not deployed | 1 |
+| 01 | Infrastructure / Cloudflare | P0 | Sprint 0 deployed (`1c7122bf`); cleanup awaits approval | 1 |
 | 02 | Trend intelligence | P1 | Not started (cost finding logged) | 2 |
 | 03 | Research / fact check | P1 | Not started | 2 |
-| 04 | AI publishing engine | P0 | Sprint 0 fixes in PR, not deployed | 1 |
-| 05 | Newsroom / CMS | P0 | Backlog listed, no action | 1 |
+| 04 | AI publishing engine | P0 | Sprint 0 deployed; quota decision pending (owner) | 1 |
+| 05 | Newsroom / CMS | P0 | Autopublish diagnosed (policy, not bug); backlog needs editor | 1 |
 | 06 | Technical SEO / indexing | P1 | Baseline only | 2 |
 | 07 | Content SEO | P2 | Not started | 3 |
 | 08 | UI / UX | P2 | Not started (after publishing is stable) | 3 |
@@ -192,7 +192,18 @@ Branch `fix/sprint0-publishing-reliability`. Not deployed.
 | `npm run build` | pass | pass |
 | `npm run test:rendered` | 8/8 | 8/8 |
 | Playwright e2e | not run | not run (no UI change in Sprint 0) |
-| Production: drafts leaked per hour | ~12 (observed 22:12-23:01 UTC) | expected 0 after deploy (to verify) |
+| Production: drafts leaked per run | ~3 (observed 22:12-23:01 UTC) | 0 in the 23:30 UTC run after deploy (same articles now end as `video_none_found`) |
+
+## Sprint 0 deploy and overnight findings (2026-10-28 23:20 UTC onward)
+
+- PR #3 merged (`d69c1e4`) and deployed as `1c7122bf` from `northline_v10`. That directory holds the real `wrangler.jsonc` (D1 ids, queue `max_concurrency: 2`); the GitHub copy has placeholder ids, so a deploy straight from `northline-github` would fail or point at the wrong DB. The 8 changed source files were copied from `main`; v10's previous copies are backed up in the session scratchpad.
+- **Autopublish is not broken.** It runs every 15 minutes and finds 0 candidates (288 runs in 3 days) because it only takes `risk_level = 'LOW'`, while stories that fail the auto-approve gate are marked MEDIUM and sent to a human. All 7 APPROVED stories are MEDIUM, so a person has to publish them. This is policy; it was not loosened.
+- **The review backlog expires itself.** `retireStaleReviewBacklog` retires review stories older than 72 hours. The 14 waiting stories (Oct 26-28) will start dropping out from Oct 29-31 unless an editor acts.
+- **Why stories need review (7 days, 88 runs):** missing primary source (21), central claim without primary evidence (21), too short (16), review not independent (14), fact review unavailable (10), fact review blocking (6). "Not independent" and "unavailable" mean the second provider for the fact check was not available, which is the same quota problem.
+- **`ai_tasks` is not a broken ledger.** Only the newsroom review-package route and one job use it. The autonomous newsroom records cost in `autonomous_story_runs.cost_micros`: $3.3 for 35 review-stage stories in 7 days (about $0.08 each). Failed runs record $0 even though they spent a discovery call, so real spend is a little higher.
+- **0-source trends:** 177 runs in 14 days ended `TOPIC_NOT_REPORTABLE`. Each spent one web-grounded discovery call (daily quota) first. The trend's own fields cannot predict it: source velocity is the same for good and bad trends (3.3 vs 3.2), and `primary_source_availability` is 0 on every trend (never filled in). No pre-AI gate was added, because it would cut good stories just as often as bad ones. Fix the data first (Sprint 2, workstream 02).
+- **Per-provider cooldown:** deprioritised. The gateway already falls through to the next provider on a rate limit, so a run fails as rate-limited only when every provider in its chain is exhausted. The global cooldown is therefore right unless a chain has one provider, which depends on the secret chain values.
+- Added `tests/jobs/d1-query-guard.test.ts`: fails CI if any runtime file builds a `LIKE '%' || column` pattern (verified to catch a planted example).
 
 ## Blockers and access needed (owner)
 
@@ -202,6 +213,18 @@ Branch `fix/sprint0-publishing-reliability`. Not deployed.
 4. Search Console / GA4 read access, or exports. Until then those numbers are unknown.
 5. Real names for editors and author pages (07, 11).
 6. A decision on the 21 backlog stories.
+
+### Options for each blocker (pick one)
+
+| Blocker | Option A (recommended) | Option B | Option C |
+|---|---|---|---|
+| Draft cleanup | Run `scripts/ops/cleanup-leaked-media-drafts.sql` after 24 h of no new leaks | Run it now (the leak is fixed in code) | Leave the rows; cost is storage only |
+| AI quota | Enable paid tier on the current Gemini key (recorded cost about $0.08 per review-stage story; today's ~150 stories/month would be about $12-15/month, plus discovery calls that are not recorded) | Add Anthropic Haiku as the second provider in every chain, so fact review is independent | Stay on free quota and accept 3-8 drafts a day |
+| AI chain values | Owner reads them in the Cloudflare dashboard (names only were listed) and confirms each chain has 2+ providers | Replace them with a documented default from `docs/AI_POLICY.md` | — |
+| 14 review stories | Editor reviews them in `/newsroom/review` before the 72 h retirement | Let them retire and rely on new drafts | Extend `maxAgeHours` (config change, needs approval) |
+| 7 old APPROVED stories | Mark stale/archive (six weeks old) | Publish the still-evergreen ones (WEATHER and SPORTS likely not) | — |
+| Search Console / GA4 | Owner grants read access to the existing service account | Owner exports the last 3 months as CSV | — |
+| Named editors | Owner names real people and roles; we build author pages | Keep the desk byline and publish a masthead page with real names | — |
 
 ## Sprint 1 brief: restore publishing safely
 
