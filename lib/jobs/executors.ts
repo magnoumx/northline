@@ -880,6 +880,22 @@ export async function executeAutonomousDraftSchedule(
   const queue = services.EDITORIAL_QUEUE;
   if (!queue) throw new Error("AUTONOMOUS_NEWSROOM_QUEUE_UNAVAILABLE");
   const db = services.DB ?? (await getD1Binding());
+  // Recover abandoned runs before the cooldown check. Behind it, a run whose
+  // worker died stayed RUNNING for as long as the provider cooldown lasted.
+  const staleBefore = Date.now() - 45 * 60 * 1_000;
+  await db
+    .prepare(
+      `UPDATE autonomous_story_runs
+       SET state='FAILED',
+         error_code='STALE_RUN_RECOVERED',
+         error_message='A queued or running job exceeded the recovery window.',
+         completed_at=?1,
+         updated_at=?1
+       WHERE state IN ('QUEUED','RUNNING')
+         AND updated_at < ?2`,
+    )
+    .bind(Date.now(), staleBefore)
+    .run();
   const cooldownUntil = await readAiProviderCooldownUntil(db);
   if (cooldownUntil !== null) {
     await recordJobDiagnostic(db, "article.autodraft", "ai_provider_cooldown", {
@@ -899,20 +915,6 @@ export async function executeAutonomousDraftSchedule(
         );
   const dayStart = new Date();
   dayStart.setUTCHours(0, 0, 0, 0);
-  const staleBefore = Date.now() - 45 * 60 * 1_000;
-  await db
-    .prepare(
-      `UPDATE autonomous_story_runs
-       SET state='FAILED',
-         error_code='STALE_RUN_RECOVERED',
-         error_message='A queued or running job exceeded the recovery window.',
-         completed_at=?1,
-         updated_at=?1
-       WHERE state IN ('QUEUED','RUNNING')
-         AND updated_at < ?2`,
-    )
-    .bind(Date.now(), staleBefore)
-    .run();
   // Failed runs must not consume the day's story capacity. A provider
   // rate-limit that killed all thirteen midnight runs was counting as
   // "thirteen stories started today", so the capacity gate then refused every
@@ -1119,7 +1121,21 @@ export async function executeAutonomousDraftSchedule(
     pool: distinctCandidates.length,
     scheduled: scheduled.length,
   });
+  // Stories are spaced out on the queue. Two consumers run at once so a slow
+  // story does not starve trend refresh, but that also started both stories of
+  // a batch together, and the pair tripped the provider's per-minute limit
+  // (2026-10-29 09:48: two concurrent runs, both "short" 429s from google).
+  // Capped well inside the 45-minute stale-run window.
+  const spacingSeconds = boundedInteger(
+    environment.AUTONOMOUS_GENERATE_SPACING_SECONDS,
+    0,
+    600,
+    180,
+  );
+  let position = 0;
   for (const candidate of scheduled) {
+    const delaySeconds = Math.min(position * spacingSeconds, 30 * 60);
+    position += 1;
     const runId = `autonomous_${candidate.trendId}`;
     await db.prepare(
       `INSERT INTO autonomous_story_runs
@@ -1157,7 +1173,7 @@ export async function executeAutonomousDraftSchedule(
           visualAvailability: candidate.visualAvailability,
           riskLevel: candidate.riskLevel,
         },
-      });
+      }, delaySeconds > 0 ? { delaySeconds } : undefined);
     } catch (error) {
       await db
         .prepare(
@@ -1249,6 +1265,20 @@ export async function executeAutonomousArticleGenerate(
       runId,
     ).run();
     await recordTrendDiscovery(db, trendId, result.discovery, "reportable");
+    // Which provider drafted and which reviewed. Both are on the result but
+    // were never stored, so whether the fact review was really independent of
+    // the draft could not be checked from data.
+    await recordJobDiagnostic(db, "article.generate", "providers", {
+      runId,
+      draftingProvider: result.draftingProvider ?? null,
+      reviewProvider: result.reviewProvider ?? null,
+      // "deterministic" means no AI review ran at all, which is not independent.
+      independentReview:
+        Boolean(result.draftingProvider && result.reviewProvider) &&
+        result.reviewProvider !== "deterministic" &&
+        result.draftingProvider !== result.reviewProvider,
+      state: result.state,
+    });
     await db
       .prepare(
         `UPDATE trends SET editorial_state=?1, updated_at=?2 WHERE id=?3`,
