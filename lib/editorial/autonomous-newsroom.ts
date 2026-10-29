@@ -36,7 +36,11 @@ export class AutonomousTopicNotReportableError extends Error {
    * What the live-search call that ruled the topic out cost. Without it these
    * runs were recorded at $0 although each spent a paid, quota-counted call.
    */
-  constructor(message: string, readonly costUsd = 0) {
+  constructor(
+    message: string,
+    readonly costUsd = 0,
+    readonly discovery: DiscoveryCounts | null = null,
+  ) {
     super(message);
     this.name = "AutonomousTopicNotReportableError";
   }
@@ -68,7 +72,12 @@ export type AutonomousRunResult = {
   reviewProvider: string;
   costUsd: number;
   reasons: string[];
+  /** What live search found, or null when discovery did not run. */
+  discovery: DiscoveryCounts | null;
 };
+
+/** Counts from live source discovery, the only measured source signal per trend. */
+export type DiscoveryCounts = { leads: number; primaryLeads: number };
 
 type SourceRow = {
   id: string;
@@ -133,6 +142,7 @@ export async function runAutonomousNewsroomStory(
   let liveSourceLeads: unknown = null;
   let discoveryProvider = "not-run";
   let discoveryCost = 0;
+  let discoveryCounts: DiscoveryCounts | null = null;
 
   if (environment.AI_SOURCE_DISCOVERY_CHAIN?.trim()) {
     try {
@@ -174,6 +184,7 @@ export async function runAutonomousNewsroomStory(
       const primaryLeads = leads.filter(
         (lead) => lead.sourceKind === "PRIMARY",
       ).length;
+      discoveryCounts = { leads: leads.length, primaryLeads };
 
       if (leads.length < 2 || primaryLeads < 1) {
         console.warn("autonomous_topic_not_reportable", {
@@ -184,6 +195,7 @@ export async function runAutonomousNewsroomStory(
         throw new AutonomousTopicNotReportableError(
           `Live search found ${leads.length} sources and ${primaryLeads} primary sources for this term, which is not enough for a verifiable story.`,
           discoveryCost,
+          discoveryCounts,
         );
       }
     } catch (error) {
@@ -1082,6 +1094,7 @@ export async function runAutonomousNewsroomStory(
       qualityScore,
       draftingProvider: research.metadata.provider,
       reviewProvider,
+      discovery: discoveryCounts,
       costUsd:
         research.metadata.costUsd +
         discoveryCost +
@@ -1105,6 +1118,7 @@ export async function runAutonomousNewsroomStory(
     qualityScore,
     draftingProvider: research.metadata.provider,
     reviewProvider,
+    discovery: discoveryCounts,
     costUsd:
         research.metadata.costUsd +
         discoveryCost +

@@ -4,6 +4,7 @@ import { AiRuntimeError } from "../ai/errors";
 import { prepareAiReviewPackage, type SelectedEvidence } from "../editorial/ai-workflow";
 import {
   AutonomousTopicNotReportableError,
+  type DiscoveryCounts,
   runAutonomousNewsroomStory,
 } from "../editorial/autonomous-newsroom";
 import {
@@ -812,6 +813,32 @@ export function nextDailyQuotaResetMs(now: number): number {
 }
 
 /**
+ * Stores what live search actually found on the trend. primary_source_availability
+ * was written as a literal 0 at ingestion and never updated, so it carried no
+ * information; it now holds the number of primary sources live search returned
+ * (0 still means "none found or not yet searched" - the diagnostic row, with its
+ * timestamp, is the provenance that tells the two apart).
+ */
+async function recordTrendDiscovery(
+  db: D1Database,
+  trendId: string,
+  counts: DiscoveryCounts | null,
+  outcome: "reportable" | "not_reportable",
+): Promise<void> {
+  if (!counts) return;
+  await db
+    .prepare(`UPDATE trends SET primary_source_availability=?2 WHERE id=?1`)
+    .bind(trendId, Math.min(100, Math.max(0, Math.round(counts.primaryLeads))))
+    .run();
+  await recordJobDiagnostic(db, "trend.discovery", outcome, {
+    trendId,
+    leads: counts.leads,
+    primaryLeads: counts.primaryLeads,
+    measuredBy: "live_source_discovery",
+  });
+}
+
+/**
  * Returns the moment the newest rate-limit cooldown expires, or null when no
  * cooldown is open. Reading the audit log keeps the signal in the one place
  * operators already look for job history.
@@ -1221,6 +1248,7 @@ export async function executeAutonomousArticleGenerate(
       completedAt,
       runId,
     ).run();
+    await recordTrendDiscovery(db, trendId, result.discovery, "reportable");
     await db
       .prepare(
         `UPDATE trends SET editorial_state=?1, updated_at=?2 WHERE id=?3`,
@@ -1257,6 +1285,9 @@ export async function executeAutonomousArticleGenerate(
           : 0,
       )
       .run();
+    if (error instanceof AutonomousTopicNotReportableError) {
+      await recordTrendDiscovery(db, trendId, error.discovery, "not_reportable");
+    }
     if (errorCode === "AI_PROVIDER_RATE_LIMITED") {
       await recordAiProviderCooldown(
         db,
