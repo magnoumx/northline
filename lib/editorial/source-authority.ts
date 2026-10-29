@@ -191,9 +191,31 @@ export function isFirstPartyForSubject(
   if (INDEPENDENT_PRESS.has(domain)) return false;
   const brand = brandLabel(domain);
   if (brand.length < 4) return false;
-  const haystack = subjectText.toLowerCase().replace(/[^a-z0-9]+/gu, " ");
-  return new RegExp(`\\b${brand}\\b`, "u").test(haystack);
+  const words = subjectText.toLowerCase().split(/[^a-z0-9]+/u).filter(Boolean);
+  if (words.includes(brand)) return true;
+  // deadbydaylight.com is first-party for "Dead by Daylight", which a
+  // single-word match missed. A run of words only counts when it reads as a
+  // title - three or more words joined by a linking word, like "Call of Duty" -
+  // because a plain compound would let goldprice.org or newyork.com pass as
+  // the first-party record for "gold price" or "New York weather".
+  for (let start = 0; start < words.length; start += 1) {
+    let joined = words[start];
+    for (let end = start + 1; end < words.length && joined.length < brand.length; end += 1) {
+      joined += words[end];
+      const run = words.slice(start, end + 1);
+      if (
+        joined === brand &&
+        run.length >= 3 &&
+        run.slice(1, -1).some((word) => LINKING_WORDS.has(word))
+      ) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
+
+const LINKING_WORDS = new Set(["of", "by", "the", "and", "for", "in", "on", "at", "to"]);
 
 /**
  * Decides what a source actually is. The model may propose a role, but the
