@@ -98,6 +98,18 @@ describe("every provider attempt is kept", () => {
     expect(executors).toContain("attempts: error?.attempts ?? null,");
   });
 
+  // 2026-10-30: "anthropic AI_PROVIDER_REJECTED" was recorded with no reason.
+  it("keeps each provider's own reason for failures other than rate limits", () => {
+    const gateway = flat("../../lib/ai/gateway.ts");
+    expect(gateway).toContain(
+      ': { detail: lastError.message.slice(0, 300) }),',
+    );
+    const executors = flat("../../lib/jobs/executors.ts");
+    expect(executors).toContain(
+      'await recordJobDiagnostic(db, "ai.provider", "failed", { runId, trendId, attempts: error.attempts, });',
+    );
+  });
+
   it("records the live-search spend when research fails", () => {
     expect(flat("../../lib/editorial/autonomous-newsroom.ts")).toContain(
       "if (error instanceof AiRuntimeError) error.spentUsd = discoveryCost;",

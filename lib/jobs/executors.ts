@@ -1344,6 +1344,14 @@ export async function executeAutonomousArticleGenerate(
         { runId, trendId },
         error instanceof AiRuntimeError ? error : undefined,
       );
+    } else if (error instanceof AiRuntimeError && error.attempts?.length) {
+      // The run row has room for one message; every provider's own reason is
+      // kept here.
+      await recordJobDiagnostic(db, "ai.provider", "failed", {
+        runId,
+        trendId,
+        attempts: error.attempts,
+      });
     }
     if (isNonRetryableAutonomousError(error)) return;
     throw error;
