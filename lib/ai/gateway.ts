@@ -237,6 +237,9 @@ export class AiGateway implements AiCapabilityGateway {
           provider: provider.id,
           code: lastError.code,
           ...(lastError.quotaScope ? { quotaScope: lastError.quotaScope } : {}),
+          ...(lastError.code === "AI_PROVIDER_RATE_LIMITED"
+            ? {}
+            : { detail: lastError.message.slice(0, 300) }),
         });
         lastError.attempts = [...attemptFailures];
         this.logger({

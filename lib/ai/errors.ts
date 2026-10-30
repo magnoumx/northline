@@ -23,6 +23,12 @@ export type AiProviderAttemptFailure = {
   provider: string;
   code: AiRuntimeErrorCode | "SKIPPED_OVER_BUDGET";
   quotaScope?: "daily" | "short";
+  /**
+   * What the provider said, for failures other than rate limits. On
+   * 2026-10-30 Anthropic rejected a research call and Google then hit its
+   * quota; the run kept Google's message and Anthropic's reason was lost.
+   */
+  detail?: string;
 };
 
 export class AiRuntimeError extends Error {
