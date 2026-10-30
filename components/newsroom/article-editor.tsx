@@ -209,6 +209,9 @@ const HELD_REASON_LABELS: Readonly<Record<string, string>> = {
   review_not_independent: "review ran on the drafting provider",
   review_not_search_grounded: "review was not search-grounded",
   high_risk_category: "high-risk category",
+  loaded_language_in_display_copy: "headline or dek reads as opinion",
+  missing_attribution: "the body never says who said what",
+  political_content: "political story filed under a general category",
 };
 
 function heldReasonLabel(reason: string): string {
