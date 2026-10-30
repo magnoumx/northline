@@ -25,6 +25,11 @@ import { getBrandConfig } from "@/lib/brand/config";
 import { getPublicContentSnapshot, getPublishedStory } from "@/lib/content";
 import { toPublicSlug } from "@/components/public/shared";
 import {
+  categoryNameForTopicSlug,
+  categoryTopic,
+  legacyCategoryTopicRedirect,
+} from "@/lib/editorial/topic-derivation";
+import {
   PERSONAL_NOINDEX_ROUTES,
   publicRouteMetadata,
 } from "@/lib/site/public-routes";
@@ -90,18 +95,27 @@ export async function generateMetadata({
     return defined;
   }
   if (root === "topics" && second) {
-    const topicName = readableName(second);
+    const topicName = categoryNameForTopicSlug(second) ?? readableName(second);
     // A topic page holding one article is a duplicate of that article with 84
     // words around it. Forty-three of them existed, all `index, follow`, all
     // linked from every article - so they competed for crawl budget against the
     // reporting itself on a domain where Google had discovered 82 URLs and
     // crawled none of them. Below the threshold the page still works for a
     // reader who clicks a tag; it just stops asking to be indexed.
-    const coverage = await countPublishedStoriesForTopic(second);
-    const thin = coverage < MINIMUM_INDEXABLE_TOPIC_STORIES;
+    const topicStories = await publishedStoriesForTopic(second);
+    const thin = topicStories.length < MINIMUM_INDEXABLE_TOPIC_STORIES;
+    // Every topic page had the same templated description; the newest
+    // headlines are what actually tells a searcher what this page holds.
+    const latest = topicStories
+      .slice(0, 2)
+      .map((story) => story.headline)
+      .join("; ");
     return {
       title: `${topicName} news and explainers`,
-      description: `Verified reporting, context, and updates about ${topicName}.`,
+      description: (latest
+        ? `Latest ${topicName} reporting from Northline: ${latest}.`
+        : `Verified reporting, context, and updates about ${topicName}.`
+      ).slice(0, 160),
       alternates: thin ? undefined : { canonical: `/topics/${second}` },
       // Spread rather than `robots: undefined`. Next.js treats an explicit
       // undefined as "clear the inherited value", which stripped the root
@@ -134,11 +148,14 @@ export async function generateMetadata({
  */
 const MINIMUM_INDEXABLE_TOPIC_STORIES = 3;
 
-async function countPublishedStoriesForTopic(slug: string): Promise<number> {
+async function publishedStoriesForTopic(slug: string) {
   const { stories } = await getPublicContentSnapshot();
-  return stories.filter((story) =>
-    story.topics.some((topic) => toPublicSlug(topic) === slug),
-  ).length;
+  // Counted the way the sitemap counts: the category's own topic, then tags.
+  return stories.filter(
+    (story) =>
+      categoryTopic(story.category).slug === slug ||
+      story.topics.some((topic) => toPublicSlug(topic) === slug),
+  );
 }
 
 function storyMetadata(
@@ -234,6 +251,8 @@ export default async function CatchAllPage({
     permanentRedirect(`/story/${third}`);
   }
   if (root === "topics" && second && slug.length === 2) {
+    const current = legacyCategoryTopicRedirect(second);
+    if (current) permanentRedirect(`/topics/${current}`);
     return <TopicPage slug={second} />;
   }
   if (directories.has(root) && slug.length <= 2) {

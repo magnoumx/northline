@@ -32,9 +32,10 @@ export function HomeLead({
 }) {
   return (
     <section className="front" aria-labelledby="front-title">
-      <h2 className="visually-hidden" id="front-title">
-        Top stories
-      </h2>
+      {/* The front page had no h1 at all. */}
+      <h1 className="visually-hidden" id="front-title">
+        Northline: top U.S. stories today
+      </h1>
 
       <article className="front__lead">
         <Link

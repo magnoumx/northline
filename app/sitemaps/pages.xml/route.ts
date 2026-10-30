@@ -1,4 +1,5 @@
 import { listPublishedStoryIndex } from "@/lib/content";
+import { categoryTopic } from "@/lib/editorial/topic-derivation";
 import { isSearchIndexingEnabled } from "@/lib/site/indexing";
 
 export const dynamic = "force-dynamic";
@@ -41,7 +42,7 @@ export async function GET(request: Request) {
   const topicStoryCount = new Map<string, number>();
   for (const story of stories) {
     if (!story.category) continue;
-    const slug = story.category.trim().toLowerCase().replaceAll(/[^a-z0-9]+/gu, "-");
+    const slug = categoryTopic(story.category).slug;
     if (!slug) continue;
     topicStoryCount.set(slug, (topicStoryCount.get(slug) ?? 0) + 1);
     const modified =

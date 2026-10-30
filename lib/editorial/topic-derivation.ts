@@ -51,6 +51,44 @@ const CATEGORY_NAMES: Readonly<Record<string, string>> = {
   INTERNET_TRENDS: "Internet",
 };
 
+/**
+ * The public name and topic slug of a category: "U.S. News" at
+ * /topics/u-s-news for US_NEWS. The breadcrumb and the sitemap used to slug the
+ * enum instead (/topics/us-news), a second URL for the same list that counted
+ * zero stories and was served noindex, while the indexable twin was linked from
+ * nowhere.
+ */
+export function categoryTopic(category: string): { name: string; slug: string } {
+  const key = category.trim().toUpperCase();
+  const name =
+    CATEGORY_NAMES[key] ??
+    key
+      .split(/[_\s]+/u)
+      .filter(Boolean)
+      .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
+      .join(" ");
+  return { name, slug: topicSlug(name) };
+}
+
+/** Old enum-based topic slugs that now redirect, e.g. us-news -> u-s-news. */
+export function legacyCategoryTopicRedirect(slug: string): string | null {
+  for (const key of Object.keys(CATEGORY_NAMES)) {
+    const legacy = topicSlug(key);
+    const current = categoryTopic(key).slug;
+    if (slug === legacy && legacy !== current) return current;
+  }
+  return null;
+}
+
+/** The category name for a topic slug, when the slug is a category's. */
+export function categoryNameForTopicSlug(slug: string): string | null {
+  for (const key of Object.keys(CATEGORY_NAMES)) {
+    const topic = categoryTopic(key);
+    if (topic.slug === slug) return topic.name;
+  }
+  return null;
+}
+
 function isLowercase(value: string): boolean {
   return value === value.toLowerCase();
 }

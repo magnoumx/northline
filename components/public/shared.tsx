@@ -1,6 +1,7 @@
 import { ChevronRight } from "lucide-react";
 import Link from "next/link";
 import type { Story } from "@/lib/site/types";
+import { categoryTopic } from "@/lib/editorial/topic-derivation";
 
 export function PageIntro({
   eyebrow,
@@ -26,15 +27,16 @@ export function PageIntro({
 }
 
 export function StoryBreadcrumbs({ story }: { story: Story }) {
+  // Readers saw "Home / US_NEWS / Story": the enum, and a placeholder where
+  // the page's own name belongs.
+  const topic = categoryTopic(story.category);
   return (
     <nav className="breadcrumbs" aria-label="Breadcrumb">
       <Link href="/">Home</Link>
       <ChevronRight aria-hidden="true" />
-      <Link href={`/topics/${toPublicSlug(story.category)}`}>
-        {story.category}
-      </Link>
+      <Link href={`/topics/${topic.slug}`}>{topic.name}</Link>
       <ChevronRight aria-hidden="true" />
-      <span aria-current="page">Story</span>
+      <span aria-current="page">{story.headline}</span>
     </nav>
   );
 }

@@ -28,6 +28,7 @@ import {
 } from "../story-ui";
 import { StoryStructuredData } from "../structured-data";
 import { DemoDataNote, PageIntro, toPublicSlug } from "./shared";
+import { categoryTopic } from "@/lib/editorial/topic-derivation";
 
 /** Older than this, an article is reachable only through the archive pager. */
 const LATEST_PAGE_SIZE = 24;
@@ -348,7 +349,7 @@ export async function TopicPage({ slug }: { slug: string }) {
   const title = matching[0].topics.find(
     (topic) => toPublicSlug(topic) === requested,
   ) ??
-    matching[0].category;
+    categoryTopic(matching[0].category).name;
 
   return (
     <PageShell>
