@@ -341,7 +341,7 @@ function highRiskPrompt(promptId: string): boolean {
  * cannot ask for a good one.
  */
 const HEADLINE_RULES =
-  "Headline rules: write 50-65 characters, never more than 100. Front-load the specific, concrete news - the name, number, ruling, result, or decision that makes this worth reading today. Never open with Inside, Understanding, Beyond, Decoding, Exploring, Unpacking, How, or Why. Do not use a colon to append a list of themes. Do not stuff keywords. A reader who sees only the first 60 characters must still learn what happened.";
+  "Headline rules: write 50-65 characters, never more than 100. Front-load the specific, concrete news - the name, number, ruling, result, or decision that makes this worth reading today. Never open with Inside, Understanding, Beyond, Decoding, Exploring, Unpacking, How, or Why. Do not use a colon to append a list of themes. Do not stuff keywords. A reader who sees only the first 60 characters must still learn what happened. The headline and the dek (subheadline) report news, not opinion: no evaluative or loaded words such as crucial, dramatic, stunning, shocking, propaganda, or slams, and any characterization is attributed to whoever made it.";
 
 function systemTemplate(promptId: string): string {
   const shared =

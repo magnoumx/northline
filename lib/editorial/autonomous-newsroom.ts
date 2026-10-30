@@ -16,6 +16,7 @@ import {
   resolveSourceAuthority,
 } from "./source-authority";
 import { measureFinalBodyIntegrity } from "./final-body-integrity";
+import { assessNeutrality, isPoliticalStory } from "./editorial-neutrality";
 import { detectEventRecency } from "./event-recency";
 import { deriveTopics } from "./topic-derivation";
 import { resolveRuntimeConfig } from "./runtime-config";
@@ -286,7 +287,8 @@ export async function runAutonomousNewsroomStory(
           "restates what was already said. No hedging filler, no marketing " +
           "adjectives, no keyword padding. Every sentence must earn its place " +
           "or be cut. Attribute what is claimed and say plainly what is not yet " +
-          "known.",
+          "known. Stay neutral: report what each side said and who said it, " +
+          "and never adopt one side's characterization as fact.",
       },
     },
     budget: budgetFor(input.recommendedFormat, environment),
@@ -778,6 +780,17 @@ export async function runAutonomousNewsroomStory(
   // factually verified, source-complete, low-risk article into a blocked draft.
   // The original research draft remains the fallback when copy review fails.
   if (categoryBlocked) reasons.push("high_risk_category");
+  // Opinion in the display copy, a body that never attributes anything, and a
+  // political story the category classifier filed as general news all go to an
+  // editor. None of them is decided by the model's own account of its draft.
+  const neutrality = assessNeutrality({
+    headline: finalDraft.headline,
+    subheadline: finalDraft.subheadline,
+    body: body.flatMap((section) => section.paragraphs).join(" "),
+  });
+  if (neutrality.loadedTerms.length > 0) reasons.push("loaded_language_in_display_copy");
+  if (neutrality.missingAttribution) reasons.push("missing_attribution");
+  if (!categoryBlocked && isPoliticalStory(neutrality)) reasons.push("political_content");
   const persistedCentralSupported =
     findings.find((finding) => finding.claimId === centralClaimId)
       ?.disposition === "supported";
