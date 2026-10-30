@@ -5,6 +5,10 @@ export default function NotFound() {
   const brand = getBrandConfig();
   return (
     <main className="system-state">
+      {/* A 404 was served "index, follow". vinext ignores `metadata` exported
+          from not-found, so the tag is rendered here and React hoists it into
+          the head; where two robots tags disagree, Google applies the stricter. */}
+      <meta name="robots" content="noindex, follow" />
       <Link className="system-state__brand" href="/">
         {brand.name}
       </Link>

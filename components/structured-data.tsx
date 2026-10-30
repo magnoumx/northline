@@ -1,7 +1,7 @@
 import type { Story } from "@/lib/site/types";
 import { getBrandConfig } from "@/lib/brand/config";
 import { publisherLogo } from "@/lib/site/publisher-logo";
-import { keywordsFor } from "@/lib/editorial/topic-derivation";
+import { categoryTopic, keywordsFor } from "@/lib/editorial/topic-derivation";
 
 function JsonLd({ data }: { data: Record<string, unknown> }) {
   return (
@@ -12,10 +12,6 @@ function JsonLd({ data }: { data: Record<string, unknown> }) {
       }}
     />
   );
-}
-
-function categoryPathSlug(value: string): string {
-  return value.trim().toLowerCase().replaceAll(/[^a-z0-9]+/gu, "-");
 }
 
 /**
@@ -132,7 +128,7 @@ export function StoryStructuredData({
           ],
           datePublished: story.publishedAtIso,
           dateModified: story.updatedAtIso ?? story.publishedAtIso,
-          articleSection: story.category,
+          articleSection: categoryTopic(story.category).name,
           articleBody: story.body
             .flatMap((section) => section.paragraphs)
             .join("\n\n"),
@@ -212,8 +208,8 @@ export function StoryStructuredData({
             {
               "@type": "ListItem",
               position: 2,
-              name: story.category,
-              item: `${origin}/topics/${categoryPathSlug(story.category)}`,
+              name: categoryTopic(story.category).name,
+              item: `${origin}/topics/${categoryTopic(story.category).slug}`,
             },
             {
               "@type": "ListItem",
