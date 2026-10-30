@@ -90,14 +90,14 @@ abstract class HttpAiProviderAdapter implements AiProviderAdapter {
           );
         }
         if (!response.ok) {
-          const detail = await redactedProviderErrorDetail(response);
+          const { detail, body } = await redactedProviderErrorDetail(response);
           console.warn("ai_provider_http_error", {
             provider: this.id,
             model: this.model,
             status: response.status,
             detail,
           });
-          const httpError = providerHttpError(response.status, response.headers, detail);
+          const httpError = providerHttpError(response.status, response.headers, body);
           httpError.provider = this.id;
           throw httpError;
         }
@@ -304,14 +304,14 @@ export class AnthropicProviderAdapter extends HttpAiProviderAdapter {
           // the request" and the fact reviewer looked dead for no visible
           // reason. Captured (key strings redacted) into both the log and the
           // error so it reaches the article's factReviewError.
-          const detail = await redactedProviderErrorDetail(response);
+          const { detail, body } = await redactedProviderErrorDetail(response);
           console.warn("ai_provider_http_error", {
             provider: this.id,
             model: this.model,
             status: response.status,
             detail,
           });
-          const httpError = providerHttpError(response.status, response.headers, detail);
+          const httpError = providerHttpError(response.status, response.headers, body);
           httpError.provider = this.id;
           if (detail) httpError.message = `${httpError.message} Provider said: ${detail}`;
           throw httpError;
@@ -808,19 +808,25 @@ export function createAiProviderAdapters(
  * upstream body reaches the newsroom UI. Operators still need the real reason,
  * so a truncated, credential-redacted copy is written to the Worker log only.
  */
-async function redactedProviderErrorDetail(response: Response): Promise<string> {
-  let body: string;
+async function redactedProviderErrorDetail(
+  response: Response,
+): Promise<{ detail: string; body: string }> {
+  let raw: string;
   try {
-    body = await response.text();
+    raw = await response.text();
   } catch {
-    return "unreadable error body";
+    return { detail: "unreadable error body", body: "" };
   }
 
-  return body
+  const body = raw
     .replaceAll(/(AIza|sk-(?:ant-)?)[A-Za-z0-9_-]{8,}/gu, "[redacted]")
     .replaceAll(/\s+/gu, " ")
-    .trim()
-    .slice(0, 400);
+    .trim();
+  // The short form is for logs and messages. The quota scope and retry delay
+  // are read from the whole body: Gemini puts both in `details`, after the
+  // first 400 characters, so a spent daily quota was read as a short one and
+  // retried every hour all day.
+  return { detail: body.slice(0, 400), body };
 }
 
 /**
@@ -835,7 +841,26 @@ function parseRetryAfterMs(header: string | null): number | undefined {
     ? seconds * 1_000
     : Date.parse(header) - Date.now();
   if (!Number.isFinite(milliseconds) || milliseconds <= 0) return undefined;
-  return Math.min(milliseconds, 30_000);
+  return Math.min(milliseconds, MAX_RETRY_WAIT_MS);
+}
+
+/**
+ * Per-minute windows can need most of a minute to reopen; anything longer is
+ * left to the scheduler's cooldown rather than held in a queue message.
+ */
+const MAX_RETRY_WAIT_MS = 60_000;
+
+/**
+ * Gemini sends no Retry-After header. It names the wait in the body instead,
+ * as `"retryDelay": "37s"`, and retrying after the default 125ms only spent
+ * another request against the same closed window.
+ */
+export function bodyRetryDelayMs(body: string | undefined): number | undefined {
+  const match = body ? /"retryDelay"\s*:\s*"(\d+(?:\.\d+)?)s"/u.exec(body) : null;
+  if (!match) return undefined;
+  const milliseconds = Math.ceil(Number(match[1]) * 1_000);
+  if (!Number.isFinite(milliseconds) || milliseconds <= 0) return undefined;
+  return Math.min(milliseconds, MAX_RETRY_WAIT_MS);
 }
 
 /**
@@ -869,9 +894,9 @@ export function providerHttpError(
       quotaScope !== "daily",
     );
     rateLimited.quotaScope = quotaScope;
-    rateLimited.retryAfterMs = parseRetryAfterMs(
-      headers?.get("retry-after") ?? null,
-    );
+    rateLimited.retryAfterMs =
+      parseRetryAfterMs(headers?.get("retry-after") ?? null) ??
+      bodyRetryDelayMs(detail);
     return rateLimited;
   }
   if (status === 401 || status === 403) {

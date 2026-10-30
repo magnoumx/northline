@@ -1,5 +1,6 @@
 import { getD1Binding } from "../../db";
 import { createAiGateway, EditorialAiGateway } from "../ai";
+import { AiRuntimeError } from "../ai/errors";
 import type { AiProviderId } from "../ai/types";
 import { registerLicensedCommonsMedia } from "../media/commons-editorial";
 import { registerGeneratedEditorialMedia } from "../media/generated-editorial";
@@ -290,6 +291,11 @@ export async function runAutonomousNewsroomStory(
       },
     },
     budget: budgetFor(input.recommendedFormat, environment),
+  }).catch((error: unknown) => {
+    // Live search has already been paid for. 303 runs in a week died here on
+    // a rate limit and every one was recorded at $0.
+    if (error instanceof AiRuntimeError) error.spentUsd = discoveryCost;
+    throw error;
   });
 
   // Source identity is a server decision. The model proposes a role and a

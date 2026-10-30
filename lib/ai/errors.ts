@@ -19,6 +19,12 @@ export type AiRuntimeErrorCode =
   | "AI_STRUCTURED_OUTPUT_INVALID"
   | "AI_CIRCUIT_OPEN";
 
+export type AiProviderAttemptFailure = {
+  provider: string;
+  code: AiRuntimeErrorCode | "SKIPPED_OVER_BUDGET";
+  quotaScope?: "daily" | "short";
+};
+
 export class AiRuntimeError extends Error {
   /**
    * How long the provider asked us to wait, when it said so. Retrying a
@@ -33,6 +39,14 @@ export class AiRuntimeError extends Error {
    * Waiting an hour and asking again cannot succeed until the quota resets.
    */
   quotaScope?: "daily" | "short";
+  /**
+   * Every provider the gateway tried before giving up, in order. The run used
+   * to keep only the last error, so a chain that failed on its first provider
+   * for one reason and its second for another read as the second alone.
+   */
+  attempts?: AiProviderAttemptFailure[];
+  /** What the run had already spent when this error ended it. */
+  spentUsd?: number;
 
   constructor(
     readonly code: AiRuntimeErrorCode,

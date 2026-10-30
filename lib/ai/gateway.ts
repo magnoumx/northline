@@ -5,7 +5,11 @@ import {
   type AiEnvironment,
   type AiRuntimeConfiguration,
 } from "./config";
-import { AiRuntimeError, toSafeAiError } from "./errors";
+import {
+  AiRuntimeError,
+  toSafeAiError,
+  type AiProviderAttemptFailure,
+} from "./errors";
 import { fingerprintPrompt } from "./prompt-version";
 import { createAiProviderAdapters } from "./providers";
 import type { AiProviderDependencies } from "./providers";
@@ -94,6 +98,7 @@ export class AiGateway implements AiCapabilityGateway {
     }
 
     const attemptedProviders: AiProviderId[] = [];
+    const attemptFailures: AiProviderAttemptFailure[] = [];
     let spentUsd = 0;
     let lastError: AiRuntimeError | undefined;
 
@@ -108,7 +113,10 @@ export class AiGateway implements AiCapabilityGateway {
         },
         provider.pricing,
       );
-      if (maximumAttemptCost > remainingCostUsd) continue;
+      if (maximumAttemptCost > remainingCostUsd) {
+        attemptFailures.push({ provider: provider.id, code: "SKIPPED_OVER_BUDGET" });
+        continue;
+      }
 
       attemptedProviders.push(provider.id);
       this.logger({
@@ -225,6 +233,12 @@ export class AiGateway implements AiCapabilityGateway {
         };
       } catch (error) {
         lastError = toSafeAiError(error);
+        attemptFailures.push({
+          provider: provider.id,
+          code: lastError.code,
+          ...(lastError.quotaScope ? { quotaScope: lastError.quotaScope } : {}),
+        });
+        lastError.attempts = [...attemptFailures];
         this.logger({
           type: "provider_failed",
           taskId: request.taskId,

@@ -787,8 +787,24 @@ async function recordAiProviderCooldown(
     ...detail,
     provider: error?.provider ?? null,
     quotaScope: error?.quotaScope ?? null,
+    attempts: error?.attempts ?? null,
     cooldownUntil,
   });
+}
+
+/**
+ * " Providers tried: anthropic AI_PROVIDER_RATE_LIMITED (short), google ..." -
+ * the whole chain, not only the provider that happened to fail last.
+ */
+function describeProviderAttempts(error: Error): string {
+  const attempts = error instanceof AiRuntimeError ? error.attempts : undefined;
+  if (!attempts?.length) return "";
+  return ` Providers tried: ${attempts
+    .map(
+      (attempt) =>
+        `${attempt.provider} ${attempt.code}${attempt.quotaScope ? ` (${attempt.quotaScope})` : ""}`,
+    )
+    .join(", ")}.`;
 }
 
 /**
@@ -1305,14 +1321,17 @@ export async function executeAutonomousArticleGenerate(
       )
       .bind(
         errorCode,
-        error instanceof Error
-          ? error.message.slice(0, 500)
-          : String(error).slice(0, 500),
+        (error instanceof Error
+          ? `${error.message}${describeProviderAttempts(error)}`
+          : String(error)
+        ).slice(0, 500),
         failedAt,
         runId,
         error instanceof AutonomousTopicNotReportableError
           ? Math.max(0, Math.round(error.costUsd * 1_000_000))
-          : 0,
+          : error instanceof AiRuntimeError
+            ? Math.max(0, Math.round((error.spentUsd ?? 0) * 1_000_000))
+            : 0,
       )
       .run();
     if (error instanceof AutonomousTopicNotReportableError) {
